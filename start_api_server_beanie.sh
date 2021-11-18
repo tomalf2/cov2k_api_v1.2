@@ -1,0 +1,1 @@
+uvicorn main_beanie:app --reload --reload-delay=4.0
