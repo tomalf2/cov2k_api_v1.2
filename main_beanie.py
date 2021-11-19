@@ -97,9 +97,9 @@ class QueryTypes(Enum):
 async def combine(full_path: str, request: Request, pagination: dict = Depends(mandatory_pagination)):
     """The relationships of the abstract model can be combined (chained) one after the other through the /combine endpoint,
 e.g., /combine/evidences/effects?aa_positional_change_id=S:L452R
-extracts the evidences reporting effects on the Spike mutation L452R.
+extracts the evidences reporting effects on the Spike mutation L452R.\n
 Pagination applies to the combination result and is mandatory
-if the combination result refers to a data entity.
+if the combination result refers to a data entity.\n
 A basic error handling mechanism prohibits users to build combinations with cycles
 (i.e., strings with repeated entities are illegal)."""
     # clean full_path
@@ -425,11 +425,11 @@ async def get_variants(naming_id: Optional[str] = Query(None, description="Retur
                        , pagination: OptionalPagination = Depends(optional_pagination)
                        ):
     """
-    The term variant is commonly used for the clusters that become predominant (highly prevalent) in given locations at given times (described by the Variant entity).
-    The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Variant entity.
-    Variants are linked to their Namings, Contexts, and Effects.
-
-    Different results can be obtained by exploiting the query parameters as described below.
+    The term variant is commonly used for the clusters that become predominant (highly prevalent) in given locations
+    at given times (described by the Variant entity).\n
+    The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Variant entity.\n
+    Variants are linked to their Namings, Contexts, and Effects.\n
+    Different results can be obtained by exploiting the query parameters as described below.\n
     Pagination is supported and optional (with limit and page parameters).
     """
     query = dict()
@@ -471,10 +471,10 @@ async def get_namings(variant_id: Optional[str] = Query(None, description="Retur
                       , pagination: OptionalPagination = Depends(optional_pagination)):
     """Each variant carries several names (naming_id)
 and classes (v_class, e.g., VoI for Variant of Interest or VuM for Variant under Monitoring)
-assigned by different organizations (Naming entity).
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Naming entity.
-Namings are linked to their Variants.
-Different results can be obtained by exploiting the query parameters as described below.
+assigned by different organizations (Naming entity).\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Naming entity.\n
+Namings are linked to their Variants.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     pipeline = []
     '''
@@ -583,10 +583,10 @@ async def get_contexts(variant_id: Optional[str] = Query(None, description="Retu
                        , pagination: OptionalPagination = Depends(optional_pagination)):
     """The variant is associated to several nucleotide mutations and amino acid changes (Context entity) by different
     organizations or computational rules over data (we refer to this as the owner),
-    clarified by a rule_description.
-    The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Context entity.
-Contexts are linked to their Variants, Aa Positional Changes, and Nuc Positional Mutations.
-Different results can be obtained by exploiting the query parameters as described below.
+    clarified by a rule_description.\n
+    The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Context entity.\n
+Contexts are linked to their Variants, Aa Positional Changes, and Nuc Positional Mutations.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if variant_id:
@@ -1042,18 +1042,17 @@ async def get_effects(variant_id: Optional[str] = Query(None, description="Retur
                       , aa_change_group_id: Optional[str] = Query(None, description="Returns Effects connected to a specific Aa Change Group")
                       , pagination: OptionalPagination = Depends(optional_pagination)):
     """The phenotype of SARS-CoV-2 can be strongly affected by given amino acid changes that arise on new viruses.
-The Effect entity is specified by a type, referring to
-i) epidemiological impacts (including, e.g., viral transmission, infectivity, disease severity and fatality rate);
-ii) immunological impacts (including, e.g., sensitivity to monoclonal antibodies and binding affinity to hosts' receptors - yielding to vaccine escape);
-iii) protein kinetics impacts (such as protein flexibility and stability);
-iv) treatments impact
-(e.g., vaccine efficacy and drug resistance).
+The Effect entity is specified by a type, referring to:\n
+i) epidemiological impacts (including, e.g., viral transmission, infectivity, disease severity and fatality rate);\n
+ii) immunological impacts (including, e.g., sensitivity to monoclonal antibodies and binding affinity to hosts' receptors - yielding to vaccine escape);\n
+iii) protein kinetics impacts (such as protein flexibility and stability);\n
+iv) treatments impact (e.g., vaccine efficacy and drug resistance).\n
 The presence of the change may yield
 an increase or decrease of the impact (encoded in the level attribute);
-the effect is usually reported as a result of a scientific study that used a given method (clinical, experimental, computational or inferred).
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Effect entity.
-Effects are linked to their Evidences and can be linked to the corresponding Variants, individual Aa Positional Changes,or AA Change Groups.
-Different results can be obtained by exploiting the query parameters as described below.
+the effect is usually reported as a result of a scientific study that used a given method (clinical, experimental, computational or inferred).\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Effect entity.\n
+Effects are linked to their Evidences and can be linked to the corresponding Variants, individual Aa Positional Changes,or AA Change Groups.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     effects_of_aa_change = None
     if aa_positional_change_id:
@@ -1172,14 +1171,14 @@ async def get_effect(effect_id: Optional[str] = None):
 
 
 @app.get("/evidences")
-async def get_evidences(effect_id: Optional[str] = None
+async def get_evidences(effect_id: Optional[str] = Query(None, description="Returns Evidences connected to a specific Effect")
                         , pagination: OptionalPagination = Depends(optional_pagination)):
     """Each effect is reported through written documents (Evidence entity), which could be
 publications, preprints, or curated sources (type of evidence),
-characterized by  citation, uri, and publisher (e.g., preprint servers such as bioRxiv or medRxiv, forums such as Virological, or any other academic literature editor).
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Evidence entity.
-Evidences are linked to their Effects.
-Different results can be obtained by exploiting the query parameters as described below.
+characterized by  citation, uri, and publisher (e.g., preprint servers such as bioRxiv or medRxiv, forums such as Virological, or any other academic literature editor).\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Evidence entity.\n
+Evidences are linked to their Effects.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     if effect_id:
         result = await EffectSource.find({'effect_ids': {'$elemMatch': {'$eq': PydanticObjectId(effect_id)}}}
@@ -1199,15 +1198,17 @@ async def get_evidence(evidence_id: str):
 
 
 @app.get("/nuc_positional_mutations")
-async def get_nuc_positional_mutations(context_id: Optional[str] = None, nuc_annotation_id: Optional[str] = None
-                                       , nuc_mutation_id: Optional[str] = None
+async def get_nuc_positional_mutations(context_id: Optional[str] = Query(None, description="Returns Nuc Positional Mutations of a specific Context")
+                                       , nuc_annotation_id: Optional[str] = Query(None, description="Returns Nuc Positional Mutations contained in a specific Nuc Annotation")
+                                       , nuc_mutation_id: Optional[str] = Query(None, description="Returns the Nuc Positional Mutation corresponding to a specific data Nuc Mutation")
                                        , pagination: OptionalPagination = Depends(optional_pagination)):
-    """Mutations occur at specific positions of the SARS-CoV-2 nucleotide sequence (Nuc positional mutation entity), causing deletions, insertions or - most frequently - substitutions (difference encoded by the type attribute).
+    """Mutations occur at specific positions of the SARS-CoV-2 nucleotide sequence (Nuc positional mutation entity), causing deletions,
+    insertions or - most frequently - substitutions (difference encoded by the type attribute).
 They have a position, where the reference nucleotide is changed into an alternative, affecting a certain length of the sequence. For instance,
-A23403G indicates that - in the 23403rd nucleotide of the sequence - a single base of Adenine  has been changed into a Guanine.
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc Positional Mutation entity.
-Nuc Positional Mutations are linked to Contexts and Nuc Annotations.
-Different results can be obtained by exploiting the query parameters as described below.
+A23403G indicates that - in the 23403rd nucleotide of the sequence - a single base of Adenine  has been changed into a Guanine.\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc Positional Mutation entity.\n
+Nuc Positional Mutations are linked to Contexts and Nuc Annotations.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     mutations_of_context = None
@@ -1422,13 +1423,13 @@ async def get_nuc_positional_mutation(nuc_positional_mutation_id: str):
 
 
 @app.get("/aa_positional_changes")
-async def get_aa_positional_changes(context_id: Optional[str] = None
-                                    , effect_id: Optional[str] = None
-                                    , protein_id: Optional[str] = None
-                                    , aa_change_group_id: Optional[str] = None
-                                    , aa_residue_change_id: Optional[str] = None
-                                    , epitope_id: Optional[str] = None
-                                    , aa_change_id: Optional[str] = None
+async def get_aa_positional_changes(context_id: Optional[str] = Query(None, description="Returns Aa Positional Changes of a specific Context")
+                                    , effect_id: Optional[str] = Query(None, description="Returns Aa Positional Changes that present a given Effect")
+                                    , protein_id: Optional[str] = Query(None, description="Returns Aa Positional Changes contained in the specified Protein")
+                                    , aa_change_group_id: Optional[str] = Query(None, description="Returns Aa Positional Changes that are part of a specific Aa Change Group")
+                                    , aa_residue_change_id: Optional[str] = Query(None, description="Returns Aa Positional Changes corresponding to (non positional) Aa Residue Changes")
+                                    , epitope_id: Optional[str] = Query(None, description="Returns Aa Positional Changes that fall in the interval of given Epitope")
+                                    , aa_change_id: Optional[str] = Query(None, description="Returns the Aa Positional Change corresponding to a specific data AA Change ")
                                     # , reference: Optional[str] = None
                                     # , alternative: Optional[str] = None
                                     , pagination: OptionalPagination = Depends(optional_pagination)
@@ -1436,10 +1437,10 @@ async def get_aa_positional_changes(context_id: Optional[str] = None
     """Non-synonymous nucleotide mutations cause amino acid changes within specific proteins (AA positional change entity, occurring in a  position where a reference residue has been changed into an alternative residue linked to a specific  protein_id for a given length);
 these have a major influence on the protein functionalities. When type is a deletion, the alternative residue is encoded with a dash.
 Insertions only have a position and an alternative string of arbitrary length.
-Amino acid changes are denoted by strings, e.g., S:D614G denotes the substitution, at the 614 position of the Spike protein, of the amino acid Aspartic Acid (D) with the amino acid Glycine (G).
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Positional Change entity.
-A Positional Changes are linked to Contexts, Effects, Proteins, Aa Change Groups, Aa Residue Changes, Epitopes, and Aa Changes.
-Different results can be obtained by exploiting the query parameters as described below.
+Amino acid changes are denoted by strings, e.g., S:D614G denotes the substitution, at the 614 position of the Spike protein, of the amino acid Aspartic Acid (D) with the amino acid Glycine (G).  \n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Positional Change entity.\n
+A Positional Changes are linked to Contexts, Effects, Proteins, Aa Change Groups, Aa Residue Changes, Epitopes, and Aa Changes.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if context_id:
@@ -1765,13 +1766,13 @@ async def get_aa_positional_change(aa_positional_change_id: str):
 
 
 @app.get('/aa_change_groups')
-async def get_aa_change_groups(aa_positional_change_id: Optional[str] = None
-                               , effect_id: Optional[str] = None
+async def get_aa_change_groups(aa_positional_change_id: Optional[str] = Query(None, description="Returns Aa Change Groups that contain a given Aa Positional Change")
+                               , effect_id: Optional[str] = Query(None, description="Returns the Aa Change Group with a specified Effect")
                                , pagination: OptionalPagination = Depends(optional_pagination)):
-    """As several changes may jointly produce stronger effects, it is also important to group changes (Aa Change Groups entity).
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Change group entity.
-Aa Positional Changes are linked to Effects.
-Different results can be obtained by exploiting the query parameters as described below.
+    """As several changes may jointly produce stronger effects, it is also important to group changes (Aa Change Groups entity).\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Change group entity.\n
+Aa Positional Changes are linked to Effects.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if aa_positional_change_id:
@@ -1811,15 +1812,15 @@ async def get_aa_change_group(aa_change_group_id: str):
 
 
 @app.get("/nuc_annotations")
-async def get_nuc_annotations(protein_id: Optional[str] = None
-                              , nuc_positional_mutation_id: Optional[str] = None
+async def get_nuc_annotations(protein_id: Optional[str] = Query(None, description="Returns the Nuc Annotation corresponding to a given Protein")
+                              , nuc_positional_mutation_id: Optional[str] = Query(None, description="Returns Nuc Annotations that contain a given Nuc Positional Mutation")
                               # , pos: Optional[int] = None
                               , pagination: OptionalPagination = Depends(optional_pagination)
                               ):
-    """The structure of SARS-CoV-2 sequences is modeled by defining a rich set of annotations, e.g., regions identified with a name with start_on_ref and stop_on_ref positions on the reference sequence (entity Nuc. annotation).
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc. Annotation entity.
-Nuc. Annotations are linked to Proteins and Nuc. Positional Mutations.
-Different results can be obtained by exploiting the query parameters as described below.
+    """The structure of SARS-CoV-2 sequences is modeled by defining a rich set of annotations, e.g., regions identified with a name with start_on_ref and stop_on_ref positions on the reference sequence (entity Nuc. annotation).\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc. Annotation entity.\n
+Nuc. Annotations are linked to Proteins and Nuc. Positional Mutations.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if protein_id:
@@ -1933,18 +1934,18 @@ async def get_nuc_annotation(nuc_annotation_id):
 
 
 @app.get("/proteins")
-async def get_proteins(nuc_annotation_id: Optional[str] = None
-                       , epitope_id: Optional[str] = None
-                       , protein_region_id: Optional[str] = None
-                       , aa_positional_change_id: Optional[str] = None
-                       , aa_change_id: Optional[str] = None
+async def get_proteins(nuc_annotation_id: Optional[str] =  Query(None, description="Returns the Protein corresponding to a given Nuc Annotation")
+                       , epitope_id: Optional[str] =  Query(None, description="Returns the Protein to which a given Epitope belongs")
+                       , protein_region_id: Optional[str] =  Query(None, description="Returns the Protein that contains a given Protein Region")
+                       , aa_positional_change_id: Optional[str] =  Query(None, description="Returns the Protein on which the specified Aa Positional Change falls")
+                       , aa_change_id: Optional[str] =  Query(None, description="Returns the Protein on which the specified data Aa Change falls")
                        , pagination: OptionalPagination = Depends(optional_pagination)):
     """Sequences of amino acids (aa_sequences), form proteins (entity Protein); each protein maps to a specific nucleotide annotation on the basis of its starting and ending position.
 Several schemes are used to denote SARS-CoV-2 protein regions; here, we adopt the scheme employed by NCBI GenBank, using both polyproteins ORF1ab and ORF1a and their nonstructural proteins NSP1-NSP16 as instances of the Protein entity, and then mapping ORF1ab and ORF1a to NSP1--NSP16 for denoting mutations (GISAID convention).
-Each protein sequence has a given aa_length measured by the number of its amino acids; therefore, proteins' positions are associated with a unique number ranging from 1 to the protein's length.
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Protein entity.
-Proteins link to Nuc. Annotations, Epitopes, Protein Regions, Aa Positional Changes, and Aa Changes.
-Different results can be obtained by exploiting the query parameters as described below.
+Each protein sequence has a given aa_length measured by the number of its amino acids; therefore, proteins' positions are associated with a unique number ranging from 1 to the protein's length.\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Protein entity.\n
+Proteins link to Nuc. Annotations, Epitopes, Protein Regions, Aa Positional Changes, and Aa Changes.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if nuc_annotation_id:
@@ -2287,13 +2288,13 @@ async def get_protein(protein_id: str):
 
 
 @app.get("/protein_regions")
-async def get_protein_regions(protein_id: Optional[str] = None
+async def get_protein_regions(protein_id: Optional[str] =  Query(None, description="Returns Protein Regions that belong to the given Protein")
                               , pagination: OptionalPagination = Depends(optional_pagination)):
     """Proteins include regions with special properties (entity Protein regions) having a start_on_protein and a stop_on_protein position linked to a given protein_id,
-as well as a describing name, a general category, and a type.
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Protein Region entity.
-Protein Regions are connected with Proteins.
-Different results can be obtained by exploiting the query parameters as described below.
+as well as a describing name, a general category, and a type.\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Protein Region entity.\n
+Protein Regions are connected with Proteins.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if protein_id:
@@ -2321,17 +2322,18 @@ async def get_protein_region(protein_region_id: str):
 
 
 @app.get('/aa_residue_changes')
-async def get_aa_residue_changes(aa_positional_change_id: Optional[str] = None
-                                 , aa_residue_id: Optional[str] = None
-                                 , reference: Optional[str] = None
-                                 , alternative: Optional[str] = None
+async def get_aa_residue_changes(aa_positional_change_id: Optional[str] =  Query(None, description="Returns the AA Residue Change corresponding to a given Aa Positional Change")
+                                 , aa_residue_id: Optional[str] =  Query(None, description="Returns AA Residue Changes that involve a given Aa Residue (either as reference or alternative)")
+                                 , reference: Optional[str] = Query(None, description="Returns AA Residue Changes that exhibit the given value as the reference AA Residue")
+                                 , alternative: Optional[str] = Query(None, description="Returns AA Residue Changes that exhibit the given value as the alternative AA Residue")
                                  , pagination: OptionalPagination = Depends(optional_pagination)):
     """Although the effects of amino acid changes significantly depend on their position on proteins, some characteristics depend just on the specific change - in particular,
 each substitution in Aa Positional Change is connected to the entity Aa Residue Change, which involves two residues (entity AA residue), respectively named as reference
-and alternative, and is further characterized by the grantham_distance that measures the structural difference between the two residues' molecules and determines the type of the change (i.e., radical or conservative, being 66 the threshold distance).
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Residue Change entity.
-Aa Residue Changes are connected to Aa Positional Changes, and Aa Residues.
-Different results can be obtained by exploiting the query parameters as described below.
+and alternative, and is further characterized by the grantham_distance that measures the structural difference between the two residues'
+molecules and determines the type of the change (i.e., radical or conservative, being 66 the threshold distance).\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Residue Change entity.\n
+Aa Residue Changes are connected to Aa Positional Changes, and Aa Residues.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if aa_positional_change_id and reference and alternative\
@@ -2650,7 +2652,8 @@ async def get_aa_residue_change(aa_residue_change_id: str):
 @app.get('/aa_residues_ref')
 @app.get('/aa_residues_alt')
 @app.get('/aa_residues')
-async def get_aa_residues(request: Request, aa_residue_change_id: Optional[str] = None
+async def get_aa_residues(request: Request
+                          , aa_residue_change_id: Optional[str] = Query(None, description="Returns AA Residues involved in the specified AA Residue Change (both, only reference, only alternative de pending on the called endpoint)")
                           , pagination: OptionalPagination = Depends(optional_pagination)):
     """Each Aa Residue holds given properties (i.e.,
 molecular_weight,
@@ -2707,16 +2710,16 @@ async def get_aa_residue(aa_residue_id: str):
 
 
 @app.get('/sequences')
-async def get_sequences(nuc_mutation_id: Optional[str] = None
-                        , aa_change_id: Optional[str] = None
-                        , host_sample_id: Optional[int] = None
+async def get_sequences(nuc_mutation_id: Optional[str] = Query(None, description="Returns Sequences that exhibit the given Nuc Mutation")
+                        , aa_change_id: Optional[str] = Query(None, description="Returns Sequences that exhibit the given Aa Change")
+                        , host_sample_id: Optional[int] = Query(None, description="Returns Sequences sequenced from the given Host Sample")
                         , pagination: dict = Depends(mandatory_pagination)):
     """The viral Sequence entity contains metadata about
 its origin (accession_id in the source_database),
-its sequencing characteristics - such as length and percentages of unknown or GC bases (n_percentage and gc_percentage).
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Sequence entity.
-Sequences are linked to their Nuc Mutations, Aa Changes, and Host Samples.
-Different results can be obtained by exploiting the query parameters as described below.
+its sequencing characteristics - such as length and percentages of unknown or GC bases (n_percentage and gc_percentage).\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Sequence entity.\n
+Sequences are linked to their Nuc Mutations, Aa Changes, and Host Samples.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is mandatory (with limit and page parameters).
 """
     final_pagination_stmt = f'order by sequence_id {pagination["stmt"]}'
@@ -2804,12 +2807,12 @@ async def get_sequence(sequence_id: int):
 
 
 @app.get('/host_samples')
-async def get_host_samples(sequence_id: Optional[int] = None
+async def get_host_samples(sequence_id: Optional[int] = Query(None, description="Returns the Host Sample of a given Sequence")
                            , pagination: dict = Depends(mandatory_pagination)):
-    """The Host Sample entity describes the connected biological aspects: the host organism properties, including location (in terms of continent, country, and region), collection_date, and host_species.
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Host Sample entity.
-Host Samples are linked to the derived Sequences.
-Different results can be obtained by exploiting the query parameters as described below.
+    """The Host Sample entity describes the connected biological aspects: the host organism properties, including location (in terms of continent, country, and region), collection_date, and host_species.\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Host Sample entity.\n
+Host Samples are linked to the derived Sequences.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by host_sample_id {pagination["stmt"]}'
     async with get_session() as session:
@@ -2853,13 +2856,13 @@ async def get_host_sample(host_sample_id):
 
 
 @app.get('/nuc_mutations')
-async def get_nuc_mutations(sequence_id: Optional[int] = None
-                            , nuc_positional_mutation_id: Optional[str] = None
+async def get_nuc_mutations(sequence_id: Optional[int] = Query(None, description="Returns the Nuc Mutations of a given Sequence")
+                            , nuc_positional_mutation_id: Optional[str] = Query(None, description="Returns the data Nuc Mutations corresponding to the given Nuc Positional Mutation")
                             , pagination: dict = Depends(mandatory_pagination)):
-    """Sequences undergo variant calling pipelines; we represent their nucleotide-level mutations in the Nuc. Mutation entity.
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc Mutation entity.
-Nuc. Mutations are linked to Sequences and to Nuc Positional Mutations.
-Different results can be obtained by exploiting the query parameters as described below.
+    """Sequences undergo variant calling pipelines; we represent their nucleotide-level mutations in the Nuc. Mutation entity.\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc Mutation entity.\n
+Nuc. Mutations are linked to Sequences and to Nuc Positional Mutations.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by sequence_original, start_original, sequence_alternative ' \
                       f'{pagination["stmt"]}'
@@ -2912,14 +2915,14 @@ async def get_nuc_mutation(nuc_mutation_id: str):
 
 
 @app.get('/aa_changes')
-async def get_aa_changes(sequence_id: Optional[int] = None
-                         , protein_id: Optional[str] = None
-                         , aa_positional_change_id: Optional[str] = None
+async def get_aa_changes(sequence_id: Optional[int] = Query(None, description="Returns the Aa Changes of a given Sequence")
+                         , protein_id: Optional[str] = Query(None, description="Returns the Aa Changes contained in a given Protein")
+                         , aa_positional_change_id: Optional[str] = Query(None, description="Returns the Aa Changes corresponding to a given Aa Positional Change")
                          , pagination: dict = Depends(mandatory_pagination)):
-    """Sequences undergo variant calling pipelines; we represent their amino acid-level changes in the AA Changes entity.
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Change entity.
-Aa Changes are linked to Sequences, Proteins, and Aa Positional Changes.
-Different results can be obtained by exploiting the query parameters as described below.
+    """Sequences undergo variant calling pipelines; we represent their amino acid-level changes in the AA Changes entity.\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Change entity.\n
+Aa Changes are linked to Sequences, Proteins, and Aa Positional Changes.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by product, reference, position, alternative {pagination["stmt"]}'
     async with get_session() as session:
@@ -2978,18 +2981,17 @@ async def get_aa_change(aa_change_id: str):
 
 
 @app.get('/epitopes')
-async def get_epitopes(assay_id: Optional[int] = None
-                       , protein_id: Optional[str] = None
-                       , aa_positional_change_id: Optional[str] = None
-                       , pagination: dict = Depends(mandatory_pagination)):
+async def get_epitopes(assay_id: Optional[int] = Query(None, description="Returns the Epitopes of a given Assay")
+                       , protein_id: Optional[str] = Query(None, description="Returns the Epitopes of a given Protein")
+                       , aa_positional_change_id: Optional[str] = Query(None, description="Returns the Epitopes that contain a given Aa Positional Change in their range")                       , pagination: dict = Depends(mandatory_pagination)):
     """Epitopes are strings of amino acid residues from a pathogen's protein possibly recognized by antibodies and B/T cell receptors.
 They can activate an immune response from the host and are thus employed in testing assays, treatments, and vaccines.
 Amino acid changes that fall within epitope segments may compromise their stability and thus affect immune response.
 Epitopes are modeled using the Epitope entity, which refers to specific epitope_start and epitope_stop positions linked to a given protein_id and are appropriate
-for specific host_species (typically humans or mice, but also genetically modified organisms);
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Epitope entity.
-Epitopes are connected to Assays, Proteins, and Aa Positional Changes.
-Different results can be obtained by exploiting the query parameters as described below.
+for specific host_species (typically humans or mice, but also genetically modified organisms).\n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Epitope entity.\n
+Epitopes are connected to Assays, Proteins, and Aa Positional Changes.\n
+Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by epi_fragment_id {pagination["stmt"]}'
     query_composer = FilterIntersection()
@@ -3052,13 +3054,13 @@ async def get_epitope(epitope_id: int):
 
 
 @app.get('/assays')
-async def get_assays(epitope_id: Optional[int] = None
+async def get_assays(epitope_id: Optional[int] = Query(None, description="Returns the Assay of a given Epitope")
                      , pagination: dict = Depends(mandatory_pagination)):
     """Epitopes are confirmed by Assays, which may give positive or negative outcomes.
-Assays can be of different assay_types (i.e., B cell, T cell or MHC ligand) and mhc_classes}; for T cell assays an hla_restriction is defined, restricting the population on which the epitope would be effective.
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Assay entity.
-Assays are linked to Epitopes.
-Different results can be obtained by exploiting the query parameters as described below.
+Assays can be of different assay_types (i.e., B cell, T cell or MHC ligand) and mhc_classes}; for T cell assays an hla_restriction is defined, restricting the population on which the epitope would be effective. \n
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Assay entity.   n
+Assays are linked to Epitopes.  n
+Different results can be obtained by exploiting the query parameters as described below.    n
 Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by assay_type, mhc_class, mhc_allele, epitope_id {pagination["stmt"]}'
     query_composer = FilterIntersection()
