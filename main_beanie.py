@@ -418,9 +418,9 @@ async def shutdown():
 
 
 @app.get("/variants")
-async def get_variants(naming_id: Optional[str] = None
-                       , effect_id: Optional[str] = None
-                       , context_id: Optional[str] = None
+async def get_variants(naming_id: Optional[str] = Query(None, description="Returns the Variant connected to a specific Naming")
+                       , effect_id: Optional[str] = Query(None, description="Returns Variants connected to a specific Effect")
+                       , context_id: Optional[str] = Query(None, description="Returns the Variant connected to a specific Context")
                        , pagination: OptionalPagination = Depends(optional_pagination)
                        ):
 """The term variant is commonly used for the clusters that become predominant (highly prevalent) in given locations at given times (described by the Variant entity).
@@ -463,7 +463,7 @@ async def get_variant(variant_id: str):
 
 
 @app.get("/namings")
-async def get_namings(variant_id: Optional[str] = None
+async def get_namings(variant_id: Optional[str] = Query(None, description="Returns Namings connected to a specific Variant")
                       , pagination: OptionalPagination = Depends(optional_pagination)):
     """Each variant carries several names (naming_id)
 and classes (v_class, e.g., VoI for Variant of Interest or VuM for Variant under Monitoring)
@@ -573,9 +573,9 @@ async def get_naming(naming_id: str):
 
 
 @app.get("/contexts")
-async def get_contexts(variant_id: Optional[str] = None
-                       , aa_positional_change_id: Optional[str] = None
-                       , nuc_positional_mutation_id: Optional[str] = None
+async def get_contexts(variant_id: Optional[str] = Query(None, description="Returns Contexts connected to a specific Variant")
+                       , aa_positional_change_id: Optional[str] = Query(None, description="Returns Contexts that contain a specific Aa Positional Change (e.g., S:D614G)")
+                       , nuc_positional_mutation_id: Optional[str] = Query(None, description="Returns Contexts connected to a specific Nuc Positional Mutation (e.g., G1942T)")
                        , pagination: OptionalPagination = Depends(optional_pagination)):
     """The variant is associated to several nucleotide mutations and amino acid changes (Context entity) by different
     organizations or computational rules over data (we refer to this as the owner),
@@ -1032,10 +1032,10 @@ async def get_context(context_id: str):
 
 
 @app.get("/effects")
-async def get_effects(variant_id: Optional[str] = None
-                      , aa_positional_change_id: Optional[str] = None
-                      , evidence_id: Optional[str] = None
-                      , aa_change_group_id: Optional[str] = None
+async def get_effects(variant_id: Optional[str] = Query(None, description="Returns Effects connected to a specific Variant")
+                      , aa_positional_change_id: Optional[str] = Query(None, description="Returns Effects of a specific Aa Positional Change (e.g., S:D614G)")
+                      , evidence_id: Optional[str] = Query(None, description="Returns Effects contained in a specific Evidence")
+                      , aa_change_group_id: Optional[str] = Query(None, description="Returns Effects connected to a specific Aa Change Group")
                       , pagination: OptionalPagination = Depends(optional_pagination)):
     """The phenotype of SARS-CoV-2 can be strongly affected by given amino acid changes that arise on new viruses.
 The Effect entity is specified by a type, referring to
