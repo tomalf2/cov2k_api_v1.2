@@ -6,7 +6,7 @@ from typing import Optional, List, Callable
 
 import bson.errors
 import uvicorn
-from fastapi import FastAPI, Request, status, HTTPException, Depends
+from fastapi import FastAPI, Request, status, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.routing import APIRoute, APIRouter
@@ -19,7 +19,7 @@ from dal.data_sqlalchemy.convert_prot_names import *
 from api_exceptions import MyExceptions
 from loguru import logger
 from os.path import sep
-
+from api_docs import custom_openapi_doc
 from dal.data_sqlalchemy.model import _session_factory
 
 app = FastAPI()
@@ -409,6 +409,7 @@ A basic error handling mechanism prohibits users to build combinations with cycl
 async def startup():
     db_name, db_user, db_psw, db_port = read_connection_parameters_csv(f".{sep}postgresql_db_conn_params.csv")
     config_db_engine(db_name, db_user, db_psw, db_port)
+    app.openapi = custom_openapi_doc(app)
     await init_db_model()
 
 
@@ -423,11 +424,14 @@ async def get_variants(naming_id: Optional[str] = Query(None, description="Retur
                        , context_id: Optional[str] = Query(None, description="Returns the Variant connected to a specific Context")
                        , pagination: OptionalPagination = Depends(optional_pagination)
                        ):
-"""The term variant is commonly used for the clusters that become predominant (highly prevalent) in given locations at given times (described by the Variant entity).
-The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Variant entity.
-Variants are linked to their Namings, Contexts, and Effects.
-Different results can be obtained by exploiting the query parameters as described below.
-Pagination is supported and optional (with limit and page parameters)."""
+    """
+    The term variant is commonly used for the clusters that become predominant (highly prevalent) in given locations at given times (described by the Variant entity).
+    The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Variant entity.
+    Variants are linked to their Namings, Contexts, and Effects.
+
+    Different results can be obtained by exploiting the query parameters as described below.
+    Pagination is supported and optional (with limit and page parameters).
+    """
     query = dict()
     if naming_id:
         query.update({"aliases.name": naming_id})
