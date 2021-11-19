@@ -95,7 +95,13 @@ class QueryTypes(Enum):
 
 @app.get("/combine/{full_path:path}")
 async def combine(full_path: str, request: Request, pagination: dict = Depends(mandatory_pagination)):
-    """DESCRIPTION TODO"""
+    """The relationships of the abstract model can be combined (chained) one after the other through the /combine endpoint,
+e.g., /combine/evidences/effects?aa_positional_change_id=S:L452R
+extracts the evidences reporting effects on the Spike mutation L452R.
+Pagination applies to the combination result and is mandatory
+if the combination result refers to a data entity.
+A basic error handling mechanism prohibits users to build combinations with cycles
+(i.e., strings with repeated entities are illegal)."""
     # clean full_path
     while len(full_path) > 0 and full_path[-1] == '/':
         full_path = full_path[:-1]
@@ -417,10 +423,11 @@ async def get_variants(naming_id: Optional[str] = None
                        , context_id: Optional[str] = None
                        , pagination: OptionalPagination = Depends(optional_pagination)
                        ):
-    """The endpoint allows to retrieve the full list of distinct instances of the Variant entity.
-The term variant is commonly used for the clusters that become predominant (highly prevalent) in given locations at given times (described by the Variant entity).
+"""The term variant is commonly used for the clusters that become predominant (highly prevalent) in given locations at given times (described by the Variant entity).
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Variant entity.
 Variants are linked to their Namings, Contexts, and Effects.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     query = dict()
     if naming_id:
         query.update({"aliases.name": naming_id})
@@ -451,19 +458,20 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/variants/{variant_id}")
 async def get_variant(variant_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Variant instance, corresponding to the specified identifier."""
     return await Variant.find_many({"_id": variant_id}, projection_model=VariantsProjection).to_list()
 
 
 @app.get("/namings")
 async def get_namings(variant_id: Optional[str] = None
                       , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Naming entity.
-Each variant carries several names (naming_id)
+    """Each variant carries several names (naming_id)
 and classes (v_class, e.g., VoI for Variant of Interest or VuM for Variant under Monitoring)
 assigned by different organizations (Naming entity).
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Naming entity.
 Namings are linked to their Variants.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     pipeline = []
     '''
     [{$match: {
@@ -512,7 +520,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/namings/{naming_id}")
 async def get_naming(naming_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Naming instance, corresponding to the specified identifier."""
     # '''
     # [{$match: {
     #   "aliases.name": "21H"
@@ -569,10 +577,13 @@ async def get_contexts(variant_id: Optional[str] = None
                        , aa_positional_change_id: Optional[str] = None
                        , nuc_positional_mutation_id: Optional[str] = None
                        , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Context entity.
-The variant is associated to several nucleotide mutations and amino acid changes (Context entity) by different organizations or computational rules over data (we refer to this as the owner), clarified by a rule_description.
+    """The variant is associated to several nucleotide mutations and amino acid changes (Context entity) by different
+    organizations or computational rules over data (we refer to this as the owner),
+    clarified by a rule_description.
+    The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Context entity.
 Contexts are linked to their Variants, Aa Positional Changes, and Nuc Positional Mutations.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if variant_id:
         #   PIPELINE FOR QUERYING VARIANT ID
@@ -1000,7 +1011,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/contexts/{context_id}")
 async def get_context(context_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Context instance, corresponding to the specified identifier."""
     variant_id, owner = context_id.split("_", maxsplit=1)
     context_exists = await Variant.find({
         '_id': variant_id,
@@ -1026,8 +1037,7 @@ async def get_effects(variant_id: Optional[str] = None
                       , evidence_id: Optional[str] = None
                       , aa_change_group_id: Optional[str] = None
                       , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Effect entity.
-The phenotype of SARS-CoV-2 can be strongly affected by given amino acid changes that arise on new viruses.
+    """The phenotype of SARS-CoV-2 can be strongly affected by given amino acid changes that arise on new viruses.
 The Effect entity is specified by a type, referring to
 i) epidemiological impacts (including, e.g., viral transmission, infectivity, disease severity and fatality rate);
 ii) immunological impacts (including, e.g., sensitivity to monoclonal antibodies and binding affinity to hosts' receptors - yielding to vaccine escape);
@@ -1037,8 +1047,10 @@ iv) treatments impact
 The presence of the change may yield
 an increase or decrease of the impact (encoded in the level attribute);
 the effect is usually reported as a result of a scientific study that used a given method (clinical, experimental, computational or inferred).
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Effect entity.
 Effects are linked to their Evidences and can be linked to the corresponding Variants, individual Aa Positional Changes,or AA Change Groups.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     effects_of_aa_change = None
     if aa_positional_change_id:
         effects_of_aa_change = await Effect.aggregate(
@@ -1148,7 +1160,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/effects/{effect_id}")
 async def get_effect(effect_id: Optional[str] = None):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Effect instance, corresponding to the specified identifier."""
     try:
         return await Effect.find({"_id": PydanticObjectId(effect_id)}, projection_model=EffectProjection).to_list()
     except bson.errors.InvalidId:
@@ -1158,12 +1170,13 @@ async def get_effect(effect_id: Optional[str] = None):
 @app.get("/evidences")
 async def get_evidences(effect_id: Optional[str] = None
                         , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Evidence entity.
-Each effect is reported through written documents (Evidence entity), which could be
+    """Each effect is reported through written documents (Evidence entity), which could be
 publications, preprints, or curated sources (type of evidence),
 characterized by  citation, uri, and publisher (e.g., preprint servers such as bioRxiv or medRxiv, forums such as Virological, or any other academic literature editor).
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Evidence entity.
 Evidences are linked to their Effects.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     if effect_id:
         result = await EffectSource.find({'effect_ids': {'$elemMatch': {'$eq': PydanticObjectId(effect_id)}}}
                                        , projection_model=EvidenceProjection).to_list()
@@ -1177,7 +1190,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/evidences/{evidence_id}")
 async def get_evidence(evidence_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Evidence instance, corresponding to the specified identifier."""
     return await EffectSource.find({"_id": PydanticObjectId(evidence_id)}, projection_model=EvidenceProjection).to_list()
 
 
@@ -1185,12 +1198,13 @@ async def get_evidence(evidence_id: str):
 async def get_nuc_positional_mutations(context_id: Optional[str] = None, nuc_annotation_id: Optional[str] = None
                                        , nuc_mutation_id: Optional[str] = None
                                        , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Nuc Positional Mutation entity.
-Mutations occur at specific positions of the SARS-CoV-2 nucleotide sequence (Nuc positional mutation entity), causing deletions, insertions or - most frequently - substitutions (difference encoded by the type attribute).
+    """Mutations occur at specific positions of the SARS-CoV-2 nucleotide sequence (Nuc positional mutation entity), causing deletions, insertions or - most frequently - substitutions (difference encoded by the type attribute).
 They have a position, where the reference nucleotide is changed into an alternative, affecting a certain length of the sequence. For instance,
 A23403G indicates that - in the 23403rd nucleotide of the sequence - a single base of Adenine  has been changed into a Guanine.
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc Positional Mutation entity.
 Nuc Positional Mutations are linked to Contexts and Nuc Annotations.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     mutations_of_context = None
     if context_id:
@@ -1398,7 +1412,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/nuc_positional_mutations/{nuc_positional_mutation_id}")
 async def get_nuc_positional_mutation(nuc_positional_mutation_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Nuc Positional Mutation instance, corresponding to the specified identifier."""
     return await NUCChange.find({"change_id": nuc_positional_mutation_id}
                                 , projection_model=NUCPositionalMutationProjection).to_list()
 
@@ -1415,13 +1429,14 @@ async def get_aa_positional_changes(context_id: Optional[str] = None
                                     # , alternative: Optional[str] = None
                                     , pagination: OptionalPagination = Depends(optional_pagination)
                                     ):
-    """The endpoint allows to retrieve the full list of distinct instances of the Aa Positional Change entity.
-Non-synonymous nucleotide mutations cause amino acid changes within specific proteins (AA positional change entity, occurring in a  position where a reference residue has been changed into an alternative residue linked to a specific  protein_id for a given length);
+    """Non-synonymous nucleotide mutations cause amino acid changes within specific proteins (AA positional change entity, occurring in a  position where a reference residue has been changed into an alternative residue linked to a specific  protein_id for a given length);
 these have a major influence on the protein functionalities. When type is a deletion, the alternative residue is encoded with a dash.
 Insertions only have a position and an alternative string of arbitrary length.
 Amino acid changes are denoted by strings, e.g., S:D614G denotes the substitution, at the 614 position of the Spike protein, of the amino acid Aspartic Acid (D) with the amino acid Glycine (G).
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Positional Change entity.
 A Positional Changes are linked to Contexts, Effects, Proteins, Aa Change Groups, Aa Residue Changes, Epitopes, and Aa Changes.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if context_id:
         variant_id, owner = context_id.split("_", maxsplit=1)
@@ -1740,7 +1755,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/aa_positional_changes/{aa_positional_change_id}")
 async def get_aa_positional_change(aa_positional_change_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Aa Positional Change instance, corresponding to the specified identifier."""
     return await AAChange.find({"change_id": aa_positional_change_id}
                                , projection_model=AAPositionalChangeProjection).to_list()
 
@@ -1749,10 +1764,11 @@ async def get_aa_positional_change(aa_positional_change_id: str):
 async def get_aa_change_groups(aa_positional_change_id: Optional[str] = None
                                , effect_id: Optional[str] = None
                                , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Aa Change group entity.
-As several changes may jointly produce stronger effects, it is also important to group changes (Aa Change Groups entity).
+    """As several changes may jointly produce stronger effects, it is also important to group changes (Aa Change Groups entity).
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Change group entity.
 Aa Positional Changes are linked to Effects.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if aa_positional_change_id:
         groups_of_positional_change = await Effect.find({
@@ -1783,7 +1799,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get('/aa_change_groups/{aa_change_group_id}')
 async def get_aa_change_group(aa_change_group_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint (without parameters) allows to retrieve one Aa Change Group instance, corresponding to the specified identifier."""
     return await Effect.find({
         "_id": PydanticObjectId(aa_change_group_id),
         "aa_changes.1": {"$exists": True}
@@ -1796,10 +1812,11 @@ async def get_nuc_annotations(protein_id: Optional[str] = None
                               # , pos: Optional[int] = None
                               , pagination: OptionalPagination = Depends(optional_pagination)
                               ):
-    """The endpoint allows to retrieve the full list of distinct instances of the Nuc. Annotation entity.
-The structure of SARS-CoV-2 sequences is modeled by defining a rich set of annotations, e.g., regions identified with a name with start_on_ref and stop_on_ref positions on the reference sequence (entity Nuc. annotation).
+    """The structure of SARS-CoV-2 sequences is modeled by defining a rich set of annotations, e.g., regions identified with a name with start_on_ref and stop_on_ref positions on the reference sequence (entity Nuc. annotation).
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc. Annotation entity.
 Nuc. Annotations are linked to Proteins and Nuc. Positional Mutations.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if protein_id:
         genes_of_protein = await Structure.find({"protein_characterization.protein_name": protein_id},
@@ -1906,7 +1923,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/nuc_annotations/{nuc_annotation_id}")
 async def get_nuc_annotation(nuc_annotation_id):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Nuc Annotation instance, corresponding to the specified identifier."""
     return await Structure.find({"_id": PydanticObjectId(nuc_annotation_id)}
                                 , projection_model=NucAnnotationProjection).to_list()
 
@@ -1918,12 +1935,13 @@ async def get_proteins(nuc_annotation_id: Optional[str] = None
                        , aa_positional_change_id: Optional[str] = None
                        , aa_change_id: Optional[str] = None
                        , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Protein entity.
-Sequences of amino acids (aa_sequences), form proteins (entity Protein); each protein maps to a specific nucleotide annotation on the basis of its starting and ending position.
+    """Sequences of amino acids (aa_sequences), form proteins (entity Protein); each protein maps to a specific nucleotide annotation on the basis of its starting and ending position.
 Several schemes are used to denote SARS-CoV-2 protein regions; here, we adopt the scheme employed by NCBI GenBank, using both polyproteins ORF1ab and ORF1a and their nonstructural proteins NSP1-NSP16 as instances of the Protein entity, and then mapping ORF1ab and ORF1a to NSP1--NSP16 for denoting mutations (GISAID convention).
 Each protein sequence has a given aa_length measured by the number of its amino acids; therefore, proteins' positions are associated with a unique number ranging from 1 to the protein's length.
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Protein entity.
 Proteins link to Nuc. Annotations, Epitopes, Protein Regions, Aa Positional Changes, and Aa Changes.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if nuc_annotation_id:
         '''
@@ -2204,7 +2222,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/proteins/{protein_id}")
 async def get_protein(protein_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Protein instance, corresponding to the specified identifier."""
     # '''
     # [{$match: {
     #   "protein_characterization.protein_name": "ORF1A"
@@ -2267,11 +2285,12 @@ async def get_protein(protein_id: str):
 @app.get("/protein_regions")
 async def get_protein_regions(protein_id: Optional[str] = None
                               , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Protein Region entity.
-Proteins include regions with special properties (entity Protein regions) having a start_on_protein and a stop_on_protein position linked to a given protein_id,
+    """Proteins include regions with special properties (entity Protein regions) having a start_on_protein and a stop_on_protein position linked to a given protein_id,
 as well as a describing name, a general category, and a type.
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Protein Region entity.
 Protein Regions are connected with Proteins.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if protein_id:
         regions_in_protein = await ProteinRegion.find({
@@ -2292,7 +2311,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get("/protein_regions/{protein_region_id}")
 async def get_protein_region(protein_region_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Protein Region instance, corresponding to the specified identifier."""
     return await ProteinRegion.find({"_id": PydanticObjectId(protein_region_id)}
                                     , projection_model=ProteinRegionProjection).to_list()
 
@@ -2303,12 +2322,13 @@ async def get_aa_residue_changes(aa_positional_change_id: Optional[str] = None
                                  , reference: Optional[str] = None
                                  , alternative: Optional[str] = None
                                  , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Aa Residue Change entity.
-Although the effects of amino acid changes significantly depend on their position on proteins, some characteristics depend just on the specific change - in particular,
+    """Although the effects of amino acid changes significantly depend on their position on proteins, some characteristics depend just on the specific change - in particular,
 each substitution in Aa Positional Change is connected to the entity Aa Residue Change, which involves two residues (entity AA residue), respectively named as reference
 and alternative, and is further characterized by the grantham_distance that measures the structural difference between the two residues' molecules and determines the type of the change (i.e., radical or conservative, being 66 the threshold distance).
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Residue Change entity.
 Aa Residue Changes are connected to Aa Positional Changes, and Aa Residues.
-Pagination is supported and optional (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
     query_composer = FilterIntersection()
     if aa_positional_change_id and reference and alternative\
             or aa_positional_change_id and (reference or alternative):
@@ -2575,7 +2595,7 @@ Pagination is supported and optional (with size and page parameters)."""
 
 @app.get('/aa_residue_changes/{aa_residue_change_id}')
 async def get_aa_residue_change(aa_residue_change_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Aa Residue Change instance, corresponding to the specified identifier."""
     if len(aa_residue_change_id) != 2:
         raise MyExceptions.unrecognised_aa_residue_change_id
     '''
@@ -2628,8 +2648,7 @@ async def get_aa_residue_change(aa_residue_change_id: str):
 @app.get('/aa_residues')
 async def get_aa_residues(request: Request, aa_residue_change_id: Optional[str] = None
                           , pagination: OptionalPagination = Depends(optional_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Aa Residue entity.
-Each Aa Residue holds given properties (i.e.,
+    """Each Aa Residue holds given properties (i.e.,
 molecular_weight,
 isoelectric_point,
 hydrophobicity,
@@ -2640,13 +2659,13 @@ charge,
 essentiality,
 side_chain_flexibility,
 chemical_group_in_the_side_chain.
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Residue entity.
 Aa Residues are connected to Aa Residue Changes.
 Two specific endpoints
 /aa_residues_ref} (resp. /aa_residues_alt) can be used to return only information regarding the reference (resp. alternative) residue.
-Pagination is supported and optional (with size and page parameters)."""
-    """
-    :param aa_residue_change_id: a two letter string
-    """
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is supported and optional (with limit and page parameters)."""
+#    :param aa_residue_change_id: a two letter string
     query_composer = FilterIntersection()
     if aa_residue_change_id:
         if len(aa_residue_change_id) != 2:
@@ -2678,7 +2697,8 @@ Pagination is supported and optional (with size and page parameters)."""
 @app.get('/aa_residues_alt/{aa_residue_id}')
 @app.get('/aa_residues/{aa_residue_id}')
 async def get_aa_residue(aa_residue_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint /aa_residues (as well as its aliases /aa_residues_ref and /aa_residues_alt) allow to retrieve
+    one Aa Residue instance, corresponding to the specified identifier."""
     return await AAResidue.find({"residue": aa_residue_id}, projection_model=AAResidueProjection).to_list()
 
 
@@ -2687,12 +2707,13 @@ async def get_sequences(nuc_mutation_id: Optional[str] = None
                         , aa_change_id: Optional[str] = None
                         , host_sample_id: Optional[int] = None
                         , pagination: dict = Depends(mandatory_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Sequence entity.
-The viral Sequence entity contains metadata about
+    """The viral Sequence entity contains metadata about
 its origin (accession_id in the source_database),
 its sequencing characteristics - such as length and percentages of unknown or GC bases (n_percentage and gc_percentage).
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Sequence entity.
 Sequences are linked to their Nuc Mutations, Aa Changes, and Host Samples.
-Pagination is mandatory (with size and page parameters).
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is mandatory (with limit and page parameters).
 """
     final_pagination_stmt = f'order by sequence_id {pagination["stmt"]}'
     async with get_session() as session:
@@ -2767,7 +2788,7 @@ Pagination is mandatory (with size and page parameters).
 
 @app.get('/sequences/{sequence_id}')
 async def get_sequence(sequence_id: int):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Sequence instance, corresponding to the specified identifier."""
     async with get_session() as session:
         query = f"select sequence_id, accession_id, database_source, length, n_percentage, gc_percentage  " \
                 f"from sequence natural join sequencing_project " \
@@ -2781,10 +2802,11 @@ async def get_sequence(sequence_id: int):
 @app.get('/host_samples')
 async def get_host_samples(sequence_id: Optional[int] = None
                            , pagination: dict = Depends(mandatory_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Host Sample entity.
-The Host Sample entity describes the connected biological aspects: the host organism properties, including location (in terms of continent, country, and region), collection_date, and host_species.
+    """The Host Sample entity describes the connected biological aspects: the host organism properties, including location (in terms of continent, country, and region), collection_date, and host_species.
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Host Sample entity.
 Host Samples are linked to the derived Sequences.
-Pagination is mandatory (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by host_sample_id {pagination["stmt"]}'
     async with get_session() as session:
         query_composer = FilterIntersection()
@@ -2814,7 +2836,7 @@ Pagination is mandatory (with size and page parameters)."""
 
 @app.get('/host_samples/{host_sample_id}')
 async def get_host_sample(host_sample_id):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Host Sample instance, corresponding to the specified identifier."""
     async with get_session() as session:
         result = await session.execute(
             "select host_sample_id, geo_group as \"continent\", country, region, collection_date, "
@@ -2830,10 +2852,11 @@ async def get_host_sample(host_sample_id):
 async def get_nuc_mutations(sequence_id: Optional[int] = None
                             , nuc_positional_mutation_id: Optional[str] = None
                             , pagination: dict = Depends(mandatory_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Nuc Mutation entity.
-Sequences undergo variant calling pipelines; we represent their nucleotide-level mutations in the Nuc. Mutation entity.
+    """Sequences undergo variant calling pipelines; we represent their nucleotide-level mutations in the Nuc. Mutation entity.
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc Mutation entity.
 Nuc. Mutations are linked to Sequences and to Nuc Positional Mutations.
-Pagination is mandatory (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by sequence_original, start_original, sequence_alternative ' \
                       f'{pagination["stmt"]}'
     async with get_session() as session:
@@ -2867,7 +2890,7 @@ Pagination is mandatory (with size and page parameters)."""
 
 @app.get('/nuc_mutations/{nuc_mutation_id}')
 async def get_nuc_mutation(nuc_mutation_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Nuc Mutation instance, corresponding to the specified identifier."""
     async with get_session() as session:
         ref, pos, alt = kb_nuc_mut_2_vcm_nuc_mut(nuc_mutation_id)
         query = "select upper(concat(sequence_original, start_original, sequence_alternative)) as \"nuc_mutation_id\", " \
@@ -2889,10 +2912,11 @@ async def get_aa_changes(sequence_id: Optional[int] = None
                          , protein_id: Optional[str] = None
                          , aa_positional_change_id: Optional[str] = None
                          , pagination: dict = Depends(mandatory_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Aa Change entity.
-Sequences undergo variant calling pipelines; we represent their amino acid-level changes in the AA Changes entity.
+    """Sequences undergo variant calling pipelines; we represent their amino acid-level changes in the AA Changes entity.
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Change entity.
 Aa Changes are linked to Sequences, Proteins, and Aa Positional Changes.
-Pagination is mandatory (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by product, reference, position, alternative {pagination["stmt"]}'
     async with get_session() as session:
         query_composer = FilterIntersection()
@@ -2931,7 +2955,7 @@ Pagination is mandatory (with size and page parameters)."""
 
 @app.get('/aa_changes/{aa_change_id}')
 async def get_aa_change(aa_change_id: str):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Aa Change instance, corresponding to the specified identifier."""
     async with get_session() as session:
         prot, ref, pos, alt = aa_change_id_2_vcm_aa_change(aa_change_id)
         result = await session.execute(
@@ -2954,14 +2978,15 @@ async def get_epitopes(assay_id: Optional[int] = None
                        , protein_id: Optional[str] = None
                        , aa_positional_change_id: Optional[str] = None
                        , pagination: dict = Depends(mandatory_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Epitope entity.
-Epitopes are strings of amino acid residues from a pathogen's protein possibly recognized by antibodies and B/T cell receptors.
+    """Epitopes are strings of amino acid residues from a pathogen's protein possibly recognized by antibodies and B/T cell receptors.
 They can activate an immune response from the host and are thus employed in testing assays, treatments, and vaccines.
 Amino acid changes that fall within epitope segments may compromise their stability and thus affect immune response.
 Epitopes are modeled using the Epitope entity, which refers to specific epitope_start and epitope_stop positions linked to a given protein_id and are appropriate
 for specific host_species (typically humans or mice, but also genetically modified organisms);
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Epitope entity.
 Epitopes are connected to Assays, Proteins, and Aa Positional Changes.
-Pagination is mandatory (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by epi_fragment_id {pagination["stmt"]}'
     query_composer = FilterIntersection()
     select_from_where_query = f"select epi_fragment_id as \"epitope_id\" , protein_name as \"protein_id\", " \
@@ -3008,7 +3033,7 @@ Pagination is mandatory (with size and page parameters)."""
 
 @app.get('/epitopes/{epitope_id}')
 async def get_epitope(epitope_id: int):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Epitope instance, corresponding to the specified identifier."""
     async with get_session() as session:
         result = await session.execute(
             f"select epi_fragment_id as \"epitope_id\" , protein_name as \"protein_id\", "
@@ -3025,11 +3050,12 @@ async def get_epitope(epitope_id: int):
 @app.get('/assays')
 async def get_assays(epitope_id: Optional[int] = None
                      , pagination: dict = Depends(mandatory_pagination)):
-    """The endpoint allows to retrieve the full list of distinct instances of the Assay entity.
-Epitopes are confirmed by Assays, which may give positive or negative outcomes.
+    """Epitopes are confirmed by Assays, which may give positive or negative outcomes.
 Assays can be of different assay_types (i.e., B cell, T cell or MHC ligand) and mhc_classes}; for T cell assays an hla_restriction is defined, restricting the population on which the epitope would be effective.
+The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Assay entity.
 Assays are linked to Epitopes.
-Pagination is mandatory (with size and page parameters)."""
+Different results can be obtained by exploiting the query parameters as described below.
+Pagination is mandatory (with limit and page parameters)."""
     pagination_stmt = f'order by assay_type, mhc_class, mhc_allele, epitope_id {pagination["stmt"]}'
     query_composer = FilterIntersection()
     select_from_query = "select distinct on (assay_type, mhc_class, mhc_allele) " \
@@ -3068,7 +3094,7 @@ Pagination is mandatory (with size and page parameters)."""
 
 @app.get('/assays/{assay_id}')
 async def get_assay(assay_id: int):
-    """DESCRIPTION TODO"""
+    """The endpoint allows to retrieve one Assay instance, corresponding to the specified identifier."""
     async with get_session() as session:
         result = await session.execute(
             f"select {assay_id} as \"assay_id\", "
