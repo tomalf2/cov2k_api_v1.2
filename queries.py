@@ -22,177 +22,6 @@ from api_docs import custom_openapi_doc
 from dal.data_sqlalchemy.model import _session_factory
 
 
-class OptionalPagination:
-    def __init__(self, limit, page):
-        if limit is not None and page is not None:
-            page -= 1
-            self.page = page
-            self.skip = limit * page
-            self.limit = limit
-            self.first_idx = self.skip
-            self.last_idx = self.skip + self.limit
-            self.stmt = f"limit {limit} offset {page * limit}"
-            self.is_set = True
-        elif limit is not None or page is not None:
-            raise MyExceptions.incomplete_optional_pagination_params
-        else:
-            self.stmt = ""
-            self.is_set = False
-
-    def __bool__(self):
-        return self.is_set
-
-
-class QueryTypes(Enum):
-    PATH_PARM = 1
-    QUERY_PARAM = 2
-    NO_PARAM = 0
-
-
-# async def combine(full_path: str, request: Request, limit: int = None, page: int = None):
-#     """The relationships of the abstract model can be combined (chained) one after the other through the /combine endpoint,
-# e.g., /combine/evidences/effects?aa_positional_change_id=S:L452R
-# extracts the evidences reporting effects on the Spike mutation L452R.\n
-# Pagination applies to the combination result and is mandatory
-# if the combination result refers to a data entity.\n
-# A basic error handling mechanism prohibits users to build combinations with cycles
-# (i.e., strings with repeated entities are illegal)."""
-#     # clean full_path
-#     while len(full_path) > 0 and full_path[-1] == '/':
-#         full_path = full_path[:-1]
-#     if len(full_path) == 0:
-#         raise MyExceptions.compose_request_no_entity_specified
-#
-#     # check that first entity is valid (others are checked later)
-#     call_list = full_path.split('/')
-#     call_list = [x for x in call_list if x]
-#     if call_list[0] not in all_available_entities:
-#         raise MyExceptions.compose_request_unrecognised_command
-#
-#     # remove page and limit from query params
-#
-#     # find query type and detect unrecognised entities
-#     query_type = None
-#     path_param = None
-#     only_pagination_query_params = True if set(request.query_params.keys()).issubset(['limit', 'page']) else False
-#     if not request.query_params or only_pagination_query_params:
-#         # check for unrecognised entities (last one can be path parameter)
-#         if not set(call_list[:-1]).issubset(all_available_entities):
-#             raise MyExceptions.compose_request_unrecognised_command
-#         if call_list[-1] in all_available_entities:
-#             query_type = QueryTypes.NO_PARAM
-#         else:
-#             path_param = call_list[-1]
-#             call_list = call_list[:-1]
-#             query_type = QueryTypes.PATH_PARM
-#     else:
-#         if not set(call_list).issubset(all_available_entities):
-#             raise MyExceptions.compose_request_unrecognised_command
-#         query_type = QueryTypes.QUERY_PARAM
-#
-#     # check for entity cycles
-#     if len(call_list) > len(set(call_list)):
-#         raise MyExceptions.compose_request_path_cycle_detected
-#
-#     # description = {
-#     #     "cleaned path": full_path,
-#     #     "entities requested": split_entities,
-#     #     "query_type": query_type.name,
-#     #     "query params": request.query_params,
-#     #     "path param": path_param,
-#     #     "header params": request.headers
-#     # }
-#
-#     async def make_request(entity_name, path_param, query_params):
-#         try:
-#             return await Entity2Request.make_function_call(entity_name, path_param, query_params)
-#         except TypeError as e:
-#             logger.exception("")
-#             if 'unexpected keyword argument' in e.args[0]:
-#                 raise MyExceptions.compose_request_unrecognised_query_parameter
-#             else:
-#                 log_and_raise_http_bad_request()
-#         except:
-#             logger.exception("")
-#             log_and_raise_http_bad_request()
-#
-#     this_call = call_list.pop()
-#     final_result = set()
-#     # grab query parameters w/o pagination ones
-#     # ALL REQUESTS ARE PERFORMED WITHOUT PAGINATION
-#     # pagination is done "in_code" at the end
-#     if request.query_params and not only_pagination_query_params:
-#         query_param_keyword = list(filter(lambda k: k != "page" and k != "limit", request.query_params.keys()))[0]
-#         query_param_values = list(request.query_params.values())
-#     else:
-#         query_param_keyword = None
-#         query_param_values = None
-#
-#     # but it could be that the last request have to be repeated as many times as len(query_param_values)
-#     # let's handle also this case later on
-#     in_code_pagination = OptionalPagination(limit, page)
-#
-#     while this_call:
-#         next_call_query_parameter_values = set()
-#         next_call_query_parameter_keyword = Entity2Request.get_id_of_entity(this_call)
-#
-#         print(f"calling {this_call} with\n"
-#               f"\tpath param {path_param}\n"
-#               f"\tquery_param_keyword {query_param_keyword}\n"
-#               f"\tquery_param_values {query_param_values}\n")
-#
-#         if query_param_values:
-#             # repeated queries at the last stage can bypass the limit on the cardinality of the result ==> we
-#             # mimic paging in python
-#             for qpv in query_param_values:
-#                 single_call_result: list = await make_request(this_call, path_param, {query_param_keyword: qpv})
-#                 if len(call_list) == 0:
-#                     # build result
-#                     final_result.update(single_call_result)
-#                     # mimic pagination when necessary
-#                     if len(final_result) > in_code_pagination.skip:
-#                         print(f"final_result set is {len(final_result)} long. It is being sorted and sliced.")
-#                         final_result = sorted(
-#                             final_result,
-#                             key=lambda x: x[next_call_query_parameter_keyword]
-#                         )[in_code_pagination.first_idx:in_code_pagination.last_idx]
-#                         break
-#                 else:
-#                     next_call_query_parameter_values.update([x[next_call_query_parameter_keyword]
-#                                                              for x in single_call_result])
-#         else:  # only the first call can be path parameter or no-parameter
-#             single_call_result: list = await make_request(this_call, path_param, dict())
-#             path_param = None
-#             if len(call_list) == 0:
-#                 # build result
-#                 final_result.update(single_call_result)
-#             else:
-#                 next_call_query_parameter_values.update([x[next_call_query_parameter_keyword]
-#                                                          for x in single_call_result])
-#
-#         # kill intermediate requests that generate too high cardinality results
-#         if len(next_call_query_parameter_values) > 10000:
-#             raise MyExceptions.compose_request_intermediate_result_too_large(this_call)
-#
-#         if len(call_list) == 0:
-#             print(f"\tresult_slice_start_idx {in_code_pagination.first_idx}\n"
-#                   f"\tresult_slice_stop_idx {in_code_pagination.last_idx}\n"
-#                   f"\tresults are sorted and paginated on ID {next_call_query_parameter_keyword}")
-#         else:
-#             print(f"\tquery param values for next call are sorted on {next_call_query_parameter_keyword}")
-#
-#         # set up next call
-#         query_param_keyword = next_call_query_parameter_keyword
-#         query_param_values = sorted(
-#             next_call_query_parameter_values)  # these are just values (int or string) no need to specify a string
-#         try:
-#             this_call = call_list.pop()
-#         except IndexError:
-#             this_call = None
-#     # HERE final_result became a list
-#     return final_result
-
-
 async def get_variants(naming_id: Optional[str] = None
                        , effect_id: Optional[str] = None
                        , context_id: Optional[str] = None
@@ -2736,6 +2565,27 @@ async def get_assay(assay_id: int):
         return result.fetchall()
 
 
+class OptionalPagination:
+    def __init__(self, limit, page):
+        if limit is not None and page is not None:
+            page -= 1
+            self.page = page
+            self.skip = limit * page
+            self.limit = limit
+            self.first_idx = self.skip
+            self.last_idx = self.skip + self.limit
+            self.stmt = f"limit {limit} offset {page * limit}"
+            self.is_set = True
+        elif limit is not None or page is not None:
+            raise MyExceptions.incomplete_optional_pagination_params
+        else:
+            self.stmt = ""
+            self.is_set = False
+
+    def __bool__(self):
+        return self.is_set
+
+
 class FilterIntersection:
     NO_FILTERS = "!NO_FILTERS"
 
@@ -2763,89 +2613,3 @@ class FilterIntersection:
 
     def result(self):
         return self._result_combined_filters
-
-
-class Entity2Request:
-    _endpoint_of_entity = {
-        'variants': 'get_variants',
-        'namings': 'get_namings',
-        'contexts': 'get_contexts',
-        'effects': 'get_effects',
-        'evidences': 'get_evidences',
-        'nuc_positional_mutations': 'get_nuc_positional_mutations',
-        'aa_positional_changes': 'get_aa_positional_changes',
-        'nuc_annotations': 'get_nuc_annotations',
-        'proteins': 'get_proteins',
-        'protein_regions': 'get_protein_regions',
-        'aa_residue_changes': 'get_aa_residue_changes',
-        'aa_residues': 'get_aa_residues',
-        'aa_residues_ref': 'get_aa_residues',
-        'aa_residues_alt': 'get_aa_residues',
-        'sequences': 'get_sequence',
-        'host_samples': 'get_host_sample',
-        'nuc_mutations': 'get_nuc_mutation',
-        'aa_changes': 'get_aa_changes',
-        'epitopes': 'get_epitopes',
-        'assays': 'get_assays',
-    }
-
-    _ID_of_entity = {
-        'variants': 'variant_id',
-        'namings': 'naming_id',
-        'contexts': 'context_id',
-        'effects': 'effect_id',
-        'evidences': 'evidence_id',
-        'nuc_positional_mutations': 'nuc_positional_mutation_id',
-        'aa_positional_changes': 'aa_positional_change_id',
-        'nuc_annotations': 'nuc_annotation_id',
-        'proteins': 'protein_id',
-        'protein_regions': 'protein_region_id',
-        'aa_residue_changes': 'aa_residue_change_id',
-        'aa_residues': 'aa_residue_id',
-        'aa_residues_ref': 'aa_residue_id',
-        'aa_residues_alt': 'aa_residue_id',
-        'sequences': 'sequence_id',
-        'host_samples': 'host_sample_id',
-        'nuc_mutations': 'nuc_mutation_id',
-        'aa_changes': 'aa_change_id',
-        'epitopes': 'epitope_id',
-        'assays': 'assay_id',
-    }
-
-    # @classmethod
-    # def function_name_for_entity(cls, entity_name: str, path_params, query_params, header_params):
-    #     function_name = cls._endpoint_of_entity[entity_name]     # default
-    #     if path_params:
-    #         function_name = function_name[:-1]
-    #     return eval(function_name)
-
-    class FakeRequest:
-        class FakeURL:
-            def __init__(self, fake_path):
-                self.path = fake_path
-
-        def __init__(self, fake_path):
-            self.url = self.FakeURL(fake_path)
-
-    @classmethod
-    def make_function_call(cls, entity_name: str, path_params, query_params: dict):
-        function_name = cls._endpoint_of_entity[entity_name]  # default
-        if path_params:
-            function_name = function_name[:-1]
-
-        if function_name == 'get_aa_residues':  # endpoint /aa_residues with query parameters
-            custom_request = cls.FakeRequest(entity_name)
-            return eval(function_name)(custom_request, **query_params)
-        elif function_name == 'get_aa_residue':  # endpoint /aa_residues with path parameter
-            custom_request = cls.FakeRequest(entity_name)
-            return eval(function_name)(custom_request, path_params)
-
-        elif path_params:
-            return eval(function_name)(path_params)
-        else:
-            return eval(function_name)(**query_params)
-
-    @classmethod
-    def get_id_of_entity(cls, entity_name: str) -> str:
-        return cls._ID_of_entity[entity_name]
-

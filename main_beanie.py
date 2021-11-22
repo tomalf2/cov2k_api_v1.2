@@ -28,34 +28,6 @@ import queries
 app = FastAPI()
 
 
-class OptionalPagination:
-    def __init__(self, limit, page):
-        if limit is not None and page is not None:
-            page -= 1
-            self.page = page
-            self.skip = limit*page
-            self.limit = limit
-            self.first_idx = self.skip
-            self.last_idx = self.skip + self.limit
-            self.stmt = f"limit {limit} offset {page*limit}"
-            self.is_set = True
-        elif limit is not None or page is not None:
-            raise MyExceptions.incomplete_optional_pagination_params
-        else:
-            self.is_set = False
-
-    def __bool__(self):
-        return self.is_set
-
-
-async def mandatory_pagination(limit: int = Query(200, ge=1), page: int = Query(1, ge=1)) -> OptionalPagination:
-    return OptionalPagination(limit, page)
-
-
-async def optional_pagination(limit: Optional[int] = Query(None, ge=1), page: Optional[int] = Query(None, ge=1)):
-    return OptionalPagination(limit, page)
-
-
 # Fixes MAX query parameter num to 1
 # Logs and handles unexpected errors
 @app.middleware("http")
@@ -177,7 +149,7 @@ A basic error handling mechanism prohibits users to build combinations with cycl
 
     # but it could be that the last request have to be repeated as many times as len(query_param_values)
     # let's handle also this case later on
-    in_code_pagination = OptionalPagination(limit, page)
+    in_code_pagination = queries.OptionalPagination(limit, page)
 
     while this_call:
         next_call_query_parameter_values = set()
@@ -238,174 +210,6 @@ A basic error handling mechanism prohibits users to build combinations with cycl
             key=lambda x: x[next_call_query_parameter_keyword]
         )[in_code_pagination.first_idx:in_code_pagination.last_idx]
     return final_result
-
-
-# @app.get("/combine/{full_path:path}")
-# async def combine(full_path: str, request: Request, pagination: dict = Depends(mandatory_pagination)):
-#     # clean full_path
-#     while len(full_path) > 0 and full_path[-1] == '/':
-#         full_path = full_path[:-1]
-#     if len(full_path) == 0:
-#         raise MyExceptions.compose_request_no_entity_specified
-#
-#     # check that first entity is valid (others are checked later)
-#     call_list = full_path.split('/')
-#     call_list = [x for x in call_list if x]
-#     if call_list[0] not in all_available_entities:
-#         raise MyExceptions.compose_request_unrecognised_command
-#
-#     # remove page and limit from query params
-#
-#
-#     # find query type and detect unrecognised entities
-#     query_type = None
-#     path_param = None
-#     only_pagination_query_params = True if set(request.query_params.keys()).issubset(['limit', 'page']) else False
-#     if not request.query_params or only_pagination_query_params:
-#         # check for unrecognised entities (last one can be path parameter)
-#         if not set(call_list[:-1]).issubset(all_available_entities):
-#             raise MyExceptions.compose_request_unrecognised_command
-#         if call_list[-1] in all_available_entities:
-#             query_type = QueryTypes.NO_PARAM
-#         else:
-#             path_param = call_list[-1]
-#             call_list = call_list[:-1]
-#             query_type = QueryTypes.PATH_PARM
-#     else:
-#         if not set(call_list).issubset(all_available_entities):
-#             raise MyExceptions.compose_request_unrecognised_command
-#         query_type = QueryTypes.QUERY_PARAM
-#
-#     # check for entity cycles
-#     if len(call_list) > len(set(call_list)):
-#         raise MyExceptions.compose_request_path_cycle_detected
-#
-#     # description = {
-#     #     "cleaned path": full_path,
-#     #     "entities requested": split_entities,
-#     #     "query_type": query_type.name,
-#     #     "query params": request.query_params,
-#     #     "path param": path_param,
-#     #     "header params": request.headers
-#     # }
-#
-#     async def make_request(entity_name, path_param, query_params, this_req_pagination_stmt):
-#         try:
-#             return await Entity2Request.make_function_call(entity_name, path_param, query_params
-#                                                            , this_req_pagination_stmt)
-#         except TypeError as e:
-#             logger.exception("")
-#             if 'unexpected keyword argument' in e.args[0]:
-#                 raise MyExceptions.compose_request_unrecognised_query_parameter
-#             else:
-#                 log_and_raise_http_bad_request()
-#         except:
-#             log_and_raise_http_bad_request()
-#
-#
-#     # call_list = queue(split_entities)
-#     # this_call = call_list.pop()
-#     # final_result = None
-#     # query_keyword = keyword_of_query_params()
-#     # query_values = [value_of_query_params()]
-#     #
-#     # while(this_call):
-#     #   next_call_query_values = []
-#     #
-#     #   if query_values:
-#     #       for(query_value in query_values):
-#     #           # single_call_result = this_call(query_keyword, query_value)
-#     #           # if next_call:
-#     #               # next_call_query_values.append(<ID_resulting_in_this_call_parsed_result>)
-#     #           # else:
-#     #               # append single_call_result to final_result
-#     #   elif path_param:
-#     #       single_call_result = this_call(path_param)
-#     #           # if next_call:
-#     #               # next_call_query_values.append(<ID_resulting_in_this_call_parsed_result>)
-#     #           # else:
-#     #               # append single_call_result to final_result
-#     #   else:
-#     #       single_call_result = this_call()
-#     #           # if next_call:
-#     #               # next_call_query_values.append(<ID_resulting_in_this_call_parsed_result>)
-#     #           # else:
-#     #               # append single_call_result to final_result
-#     #
-#     #   # set up next call
-#     #   if next_call:
-#     #       query_keyword = ID_of_entity(this_call)
-#     #       query_values = next_call_query_values
-#     #       this_call = call_list.pop()
-#
-#     this_call = call_list.pop()
-#     final_result = []
-#     if request.query_params and not only_pagination_query_params:
-#         query_param_keyword = list(request.query_params.keys())[0]
-#         query_param_values = list(request.query_params.values())
-#     else:
-#         query_param_keyword = None
-#         query_param_values = None
-#
-#     this_call_pagination = {"stmt": "", "limit": pagination["limit"], "page": pagination["page"]}
-#     # but it could be that the last request have to be repeated as many times as len(query_param_values)
-#     # let's handle also this case later on
-#     result_slice_start_idx: int = pagination["page"] * pagination["limit"]
-#     result_slice_stop_idx: int = result_slice_start_idx + pagination["limit"]
-#
-#     while this_call:
-#         next_call_query_parameter_values = []
-#         next_call_query_parameter_values_set = set()
-#         next_call_query_parameter_keyword = Entity2Request.get_id_of_entity(this_call)
-#
-#         print(f"calling {this_call} with\n"
-#               f"\tpath param {path_param}\n"
-#               f"\tquery_param_keyword {query_param_keyword}\n"
-#               f"\tquery_param_values {query_param_values}\n")
-#
-#         if query_param_values:
-#             # repeated queries at the last stage can bypass the limit on the cardinality of the result ==> we
-#             # mimic paging in python
-#             for qpv in query_param_values:
-#                 single_call_result: list = await make_request(this_call, path_param, {query_param_keyword: qpv},
-#                                                               this_call_pagination)
-#                 if len(call_list) == 0:
-#                     # build result
-#                     final_result += single_call_result
-#                     # mimic pagination when necessary
-#                     if len(final_result) > result_slice_stop_idx:
-#                         final_result = final_result[result_slice_start_idx:result_slice_stop_idx]
-#                         break
-#                 else:
-#                     a = set()
-#                     a += set()
-#
-#                     next_call_query_parameter_values += [x[next_call_query_parameter_keyword] for x in single_call_result]
-#         else:   # only the first call can be path parameter or no-parameter
-#             single_call_result: list = await make_request(this_call, path_param, dict(), this_call_pagination)
-#             path_param = None
-#             if len(call_list) == 0:
-#                 # build result
-#                 final_result += single_call_result
-#             else:
-#                 next_call_query_parameter_values += [x[next_call_query_parameter_keyword] for x in single_call_result]
-#
-#         # kill intermediate requests that generate too high cardinality results
-#         if len(next_call_query_parameter_values) > 10000:
-#             raise MyExceptions.compose_request_intermediate_result_too_large(this_call)
-#
-#         if len(call_list) == 0:
-#             print(f"\tresult_slice_start_idx {result_slice_start_idx}\n"
-#                   f"\tresult_slice_stop_idx {result_slice_stop_idx}")
-#
-#         # set up next call
-#         query_param_keyword = next_call_query_parameter_keyword
-#         query_param_values = next_call_query_parameter_values
-#         try:
-#             this_call = call_list.pop()
-#         except IndexError:
-#             this_call = None
-#     return final_result
 
 
 @app.on_event("startup")
@@ -879,35 +683,6 @@ Pagination is mandatory (with limit and page parameters)."""
 async def get_assay(assay_id: int):
     """The endpoint allows to retrieve one Assay instance, corresponding to the specified identifier."""
     return await queries.get_assay(assay_id)
-
-
-class FilterIntersection:
-    NO_FILTERS = "!NO_FILTERS"
-
-    def __init__(self):
-        self._query2result = dict()
-        self._result_combined_filters = FilterIntersection.NO_FILTERS
-
-    def add_filter(self, input_query, result):
-        if input_query:
-            self._query2result[input_query] = result
-        return self
-
-    def intersect_results(self, use_id_selector: Callable):
-        if len(self._query2result) == 1:
-            self._result_combined_filters = list(self._query2result.values())[0]
-        elif len(self._query2result) == 0:
-            pass
-        else:
-            keys = list(self._query2result.keys())
-            common_ids = set((use_id_selector(x) for x in self._query2result[keys[0]]))
-            for k in keys[1:]:
-                common_ids.intersection_update((use_id_selector(x) for x in self._query2result[k]))
-            self._result_combined_filters = [x for x in self._query2result[keys[0]] if use_id_selector(x) in common_ids]
-        return self
-
-    def result(self):
-        return self._result_combined_filters
 
 
 if __name__ == '__main__':
