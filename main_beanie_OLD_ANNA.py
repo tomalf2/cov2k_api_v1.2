@@ -423,9 +423,9 @@ async def shutdown():
 
 
 @app.get("/variants")
-async def get_variants(naming_id: Optional[str] = None
-                       , effect_id: Optional[str] = None
-                       , context_id: Optional[str] = None
+async def get_variants(naming_id: Optional[str] = Query(None, description="Returns the Variant connected to a specific Naming")
+                       , effect_id: Optional[str] = Query(None, description="Returns Variants connected to a specific Effect")
+                       , context_id: Optional[str] = Query(None, description="Returns the Variant connected to a specific Context")
                        , pagination: OptionalPagination = Depends(optional_pagination)
                        ):
     """
@@ -471,7 +471,7 @@ async def get_variant(variant_id: str):
 
 
 @app.get("/namings")
-async def get_namings(variant_id: Optional[str] = None
+async def get_namings(variant_id: Optional[str] = Query(None, description="Returns Namings connected to a specific Variant")
                       , pagination: OptionalPagination = Depends(optional_pagination)):
     """Each variant carries several names (naming_id)
 and classes (v_class, e.g., VoI for Variant of Interest or VuM for Variant under Monitoring)
@@ -581,9 +581,9 @@ async def get_naming(naming_id: str):
 
 
 @app.get("/contexts")
-async def get_contexts(variant_id: Optional[str] = None
-                       , aa_positional_change_id: Optional[str] = None
-                       , nuc_positional_mutation_id: Optional[str] = None
+async def get_contexts(variant_id: Optional[str] = Query(None, description="Returns Contexts connected to a specific Variant")
+                       , aa_positional_change_id: Optional[str] = Query(None, description="Returns Contexts that contain a specific Aa Positional Change (e.g., S:D614G)")
+                       , nuc_positional_mutation_id: Optional[str] = Query(None, description="Returns Contexts connected to a specific Nuc Positional Mutation (e.g., G1942T)")
                        , pagination: OptionalPagination = Depends(optional_pagination)):
     """The variant is associated to several nucleotide mutations and amino acid changes (Context entity) by different
     organizations or computational rules over data (we refer to this as the owner),
@@ -1040,10 +1040,10 @@ async def get_context(context_id: str):
 
 
 @app.get("/effects")
-async def get_effects(variant_id: Optional[str] = None
-                      , aa_positional_change_id: Optional[str] = None
-                      , evidence_id: Optional[str] = None
-                      , aa_change_group_id: Optional[str] = None
+async def get_effects(variant_id: Optional[str] = Query(None, description="Returns Effects connected to a specific Variant")
+                      , aa_positional_change_id: Optional[str] = Query(None, description="Returns Effects of a specific Aa Positional Change (e.g., S:D614G)")
+                      , evidence_id: Optional[str] = Query(None, description="Returns Effects contained in a specific Evidence")
+                      , aa_change_group_id: Optional[str] = Query(None, description="Returns Effects connected to a specific Aa Change Group")
                       , pagination: OptionalPagination = Depends(optional_pagination)):
     """The phenotype of SARS-CoV-2 can be strongly affected by given amino acid changes that arise on new viruses.
 The Effect entity is specified by a type, referring to:\n
@@ -1175,7 +1175,7 @@ async def get_effect(effect_id: Optional[str] = None):
 
 
 @app.get("/evidences")
-async def get_evidences(effect_id: Optional[str] = None
+async def get_evidences(effect_id: Optional[str] = Query(None, description="Returns Evidences connected to a specific Effect")
                         , pagination: OptionalPagination = Depends(optional_pagination)):
     """Each effect is reported through written documents (Evidence entity), which could be
 publications, preprints, or curated sources (type of evidence),
@@ -1202,9 +1202,9 @@ async def get_evidence(evidence_id: str):
 
 
 @app.get("/nuc_positional_mutations")
-async def get_nuc_positional_mutations(context_id: Optional[str] = None
-                                       , nuc_annotation_id: Optional[str] = None
-                                       , nuc_mutation_id: Optional[str] = None
+async def get_nuc_positional_mutations(context_id: Optional[str] = Query(None, description="Returns Nuc Positional Mutations of a specific Context")
+                                       , nuc_annotation_id: Optional[str] = Query(None, description="Returns Nuc Positional Mutations contained in a specific Nuc Annotation")
+                                       , nuc_mutation_id: Optional[str] = Query(None, description="Returns the Nuc Positional Mutation corresponding to a specific data Nuc Mutation")
                                        , pagination: OptionalPagination = Depends(optional_pagination)):
     """Mutations occur at specific positions of the SARS-CoV-2 nucleotide sequence (Nuc positional mutation entity), causing deletions,
     insertions or - most frequently - substitutions (difference encoded by the type attribute).
@@ -1427,13 +1427,13 @@ async def get_nuc_positional_mutation(nuc_positional_mutation_id: str):
 
 
 @app.get("/aa_positional_changes")
-async def get_aa_positional_changes(context_id: Optional[str] = None
-                                    , effect_id: Optional[str] = None
-                                    , protein_id: Optional[str] = None
-                                    , aa_change_group_id: Optional[str] = None
-                                    , aa_residue_change_id: Optional[str] = None
-                                    , epitope_id: Optional[str] = None
-                                    , aa_change_id: Optional[str] = None
+async def get_aa_positional_changes(context_id: Optional[str] = Query(None, description="Returns Aa Positional Changes of a specific Context")
+                                    , effect_id: Optional[str] = Query(None, description="Returns Aa Positional Changes that present a given Effect")
+                                    , protein_id: Optional[str] = Query(None, description="Returns Aa Positional Changes that present a given Effect")
+                                    , aa_change_group_id: Optional[str] = Query(None, description="Returns Aa Positional Changes that are part of a specific Aa Change Group")
+                                    , aa_residue_change_id: Optional[str] = Query(None, description="Returns Aa Positional Changes corresponding to (non positional) Aa Residue Changes")
+                                    , epitope_id: Optional[str] = Query(None, description="Returns Aa Positional Changes that fall in the interval of given Epitope")
+                                    , aa_change_id: Optional[str] = Query(None, description="Returns the Aa Positional Change corresponding to a specific data AA Change ")
                                     # , reference: Optional[str] = None
                                     # , alternative: Optional[str] = None
                                     , pagination: OptionalPagination = Depends(optional_pagination)
@@ -1770,8 +1770,8 @@ async def get_aa_positional_change(aa_positional_change_id: str):
 
 
 @app.get('/aa_change_groups')
-async def get_aa_change_groups(aa_positional_change_id: Optional[str] = None
-                               , effect_id: Optional[str] = None
+async def get_aa_change_groups(aa_positional_change_id: Optional[str] = Query(None, description="Returns Aa Change Groups that contain a given Aa Positional Change")
+                               , effect_id: Optional[str] = Query(None, description="Returns the Aa Change Group with a specified Effect")
                                , pagination: OptionalPagination = Depends(optional_pagination)):
     """As several changes may jointly produce stronger effects, it is also important to group changes (Aa Change Groups entity).\n
 The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Change group entity.\n
@@ -1816,8 +1816,8 @@ async def get_aa_change_group(aa_change_group_id: str):
 
 
 @app.get("/nuc_annotations")
-async def get_nuc_annotations(protein_id: Optional[str] = None
-                              , nuc_positional_mutation_id: Optional[str] = None
+async def get_nuc_annotations(protein_id: Optional[str] = Query(None, description="Returns the Nuc Annotation corresponding to a given Protein")
+                              , nuc_positional_mutation_id: Optional[str] = Query(None, description="Returns Nuc Annotations that contain a given Nuc Positional Mutation")
                               # , pos: Optional[int] = None
                               , pagination: OptionalPagination = Depends(optional_pagination)
                               ):
@@ -2328,8 +2328,8 @@ async def get_protein_region(protein_region_id: str):
 @app.get('/aa_residue_changes')
 async def get_aa_residue_changes(aa_positional_change_id: Optional[str] =  Query(None, description="Returns the AA Residue Change corresponding to a given Aa Positional Change")
                                  , aa_residue_id: Optional[str] =  Query(None, description="Returns AA Residue Changes that involve a given Aa Residue (either as reference or alternative)")
-                                 , reference: Optional[str] = None
-                                 , alternative: Optional[str] = None
+                                 , reference: Optional[str] = Query(None, description="Returns AA Residue Changes that exhibit the given value as the reference AA Residue")
+                                 , alternative: Optional[str] = Query(None, description="Returns AA Residue Changes that exhibit the given value as the alternative AA Residue")
                                  , pagination: OptionalPagination = Depends(optional_pagination)):
     """Although the effects of amino acid changes significantly depend on their position on proteins, some characteristics depend just on the specific change - in particular,
 each substitution in Aa Positional Change is connected to the entity Aa Residue Change, which involves two residues (entity AA residue), respectively named as reference
@@ -2657,7 +2657,7 @@ async def get_aa_residue_change(aa_residue_change_id: str):
 @app.get('/aa_residues_alt')
 @app.get('/aa_residues')
 async def get_aa_residues(request: Request
-                          , aa_residue_change_id: Optional[str] = None
+                          , aa_residue_change_id: Optional[str] = Query(None, description="Returns AA Residues involved in the specified AA Residue Change (both, only reference, only alternative de pending on the called endpoint)")
                           , pagination: OptionalPagination = Depends(optional_pagination)):
     """Each Aa Residue holds given properties (i.e.,
 molecular_weight,
@@ -2714,9 +2714,9 @@ async def get_aa_residue(aa_residue_id: str):
 
 
 @app.get('/sequences')
-async def get_sequences(nuc_mutation_id: Optional[str] = None
-                        , aa_change_id: Optional[str] = None
-                        , host_sample_id: Optional[int] = None
+async def get_sequences(nuc_mutation_id: Optional[str] = Query(None, description="Returns Sequences that exhibit the given Nuc Mutation")
+                        , aa_change_id: Optional[str] = Query(None, description="Returns Sequences that exhibit the given Aa Change")
+                        , host_sample_id: Optional[int] = Query(None, description="Returns Sequences sequenced from the given Host Sample")
                         , pagination: dict = Depends(mandatory_pagination)):
     """The viral Sequence entity contains metadata about
 its origin (accession_id in the source_database),
@@ -2811,7 +2811,7 @@ async def get_sequence(sequence_id: int):
 
 
 @app.get('/host_samples')
-async def get_host_samples(sequence_id: Optional[int] = None
+async def get_host_samples(sequence_id: Optional[int] = Query(None, description="Returns the Host Sample of a given Sequence")
                            , pagination: dict = Depends(mandatory_pagination)):
     """The Host Sample entity describes the connected biological aspects: the host organism properties, including location (in terms of continent, country, and region), collection_date, and host_species.\n
 The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Host Sample entity.\n
@@ -2860,8 +2860,8 @@ async def get_host_sample(host_sample_id):
 
 
 @app.get('/nuc_mutations')
-async def get_nuc_mutations(sequence_id: Optional[int] = None
-                            , nuc_positional_mutation_id: Optional[str] = None
+async def get_nuc_mutations(sequence_id: Optional[int] = Query(None, description="Returns the Nuc Mutations of a given Sequence")
+                            , nuc_positional_mutation_id: Optional[str] = Query(None, description="Returns the data Nuc Mutations corresponding to the given Nuc Positional Mutation")
                             , pagination: dict = Depends(mandatory_pagination)):
     """Sequences undergo variant calling pipelines; we represent their nucleotide-level mutations in the Nuc. Mutation entity.\n
 The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Nuc Mutation entity.\n
@@ -2919,9 +2919,9 @@ async def get_nuc_mutation(nuc_mutation_id: str):
 
 
 @app.get('/aa_changes')
-async def get_aa_changes(sequence_id: Optional[int] = None
-                         , protein_id: Optional[str] = None
-                         , aa_positional_change_id: Optional[str] = None
+async def get_aa_changes(sequence_id: Optional[int] = Query(None, description="Returns the Aa Changes of a given Sequence")
+                         , protein_id: Optional[str] = Query(None, description="Returns the Aa Changes contained in a given Protein")
+                         , aa_positional_change_id: Optional[str] = Query(None, description="Returns the Aa Changes corresponding to a given Aa Positional Change")
                          , pagination: dict = Depends(mandatory_pagination)):
     """Sequences undergo variant calling pipelines; we represent their amino acid-level changes in the AA Changes entity.\n
 The endpoint (without parameters) allows to retrieve the full list of distinct instances of the Aa Change entity.\n
@@ -2985,9 +2985,9 @@ async def get_aa_change(aa_change_id: str):
 
 
 @app.get('/epitopes')
-async def get_epitopes(assay_id: Optional[int] = None
-                       , protein_id: Optional[str] = None
-                       , aa_positional_change_id: Optional[str] = None                       , pagination: dict = Depends(mandatory_pagination)):
+async def get_epitopes(assay_id: Optional[int] = Query(None, description="Returns the Epitopes of a given Assay")
+                       , protein_id: Optional[str] = Query(None, description="Returns the Epitopes of a given Protein")
+                       , aa_positional_change_id: Optional[str] = Query(None, description="Returns the Epitopes that contain a given Aa Positional Change in their range")                       , pagination: dict = Depends(mandatory_pagination)):
     """Epitopes are strings of amino acid residues from a pathogen's protein possibly recognized by antibodies and B/T cell receptors.
 They can activate an immune response from the host and are thus employed in testing assays, treatments, and vaccines.
 Amino acid changes that fall within epitope segments may compromise their stability and thus affect immune response.
@@ -3058,7 +3058,7 @@ async def get_epitope(epitope_id: int):
 
 
 @app.get('/assays')
-async def get_assays(epitope_id: Optional[int] = None
+async def get_assays(epitope_id: Optional[int] = Query(None, description="Returns the Assay of a given Epitope")
                      , pagination: dict = Depends(mandatory_pagination)):
     """Epitopes are confirmed by Assays, which may give positive or negative outcomes.
 Assays can be of different assay_types (i.e., B cell, T cell or MHC ligand) and mhc_classes}; for T cell assays an hla_restriction is defined, restricting the population on which the epitope would be effective. \n
