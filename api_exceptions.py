@@ -35,8 +35,10 @@ class MyExceptions:
         , detail="The request contains a unrecognised query parameter.")
     incomplete_optional_pagination_params = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST
-        , detail="The request specifies only one between page and limit. You should define either both or none."
-    )
+        , detail="The request specifies only one between page and limit. You should define either both or none.")
+    page_0_error = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST
+        , detail="You requested page number 0, but pages starts from 1. Please repeat the request with ?page=1")
     @staticmethod
     def compose_request_intermediate_result_too_large(request_name):
         return HTTPException(

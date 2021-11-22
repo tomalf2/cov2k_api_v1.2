@@ -25,7 +25,8 @@ from dal.data_sqlalchemy.model import _session_factory
 app = FastAPI()
 
 
-async def mandatory_pagination(limit: int = 200, page: int = 0) -> dict:
+async def mandatory_pagination(limit: int = Query(200, ge=1), page: int = Query(1, ge=1)) -> dict:
+    page -= 1
     return {
         "stmt": f"limit {limit} offset {page*limit}",
         "limit": limit,
@@ -50,7 +51,9 @@ class OptionalPagination:
         return self.is_set
 
 
-async def optional_pagination(limit: Optional[int] = None, page: Optional[int] = None):
+async def optional_pagination(limit: Optional[int] = Query(None, ge=1), page: Optional[int] = Query(None, ge=1)):
+    if page is not None:
+        page -= 1
     return OptionalPagination(limit, page)
 
 
@@ -159,6 +162,7 @@ A basic error handling mechanism prohibits users to build combinations with cycl
             else:
                 log_and_raise_http_bad_request()
         except:
+            logger.exception("")
             log_and_raise_http_bad_request()
 
     this_call = call_list.pop()

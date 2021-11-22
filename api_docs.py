@@ -1,3 +1,5 @@
+import pprint
+
 from fastapi.openapi.utils import get_openapi
 from fastapi import FastAPI
 
@@ -27,7 +29,7 @@ def custom_openapi_doc(app: FastAPI):
             #     "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
             # },
         }
-        openapi_schema["paths"]["/combine"]["get"]["summary"] = "Chain endpoints"
+        openapi_schema["paths"]["/combine/{full_path}"]["get"]["summary"] = "Chain endpoints"
         #openapi_schema["paths"]["/variants/{variant_id}"]["get"]["summary"] = "Get one "
         openapi_schema["paths"]["/namings/{naming_id}"]["get"]["summary"] = "Get one Naming"
         openapi_schema["paths"]["/contexts/{context_id}"]["get"]["summary"] = "Get one Context"
@@ -55,6 +57,15 @@ def custom_openapi_doc(app: FastAPI):
         openapi_schema["paths"]["/assays/{assay_id}"]["get"]["summary"] = "Get one Assay"
         #openapi_schema["paths"]["/variants"]["get"]["summary"] = "Summary/Name for Variants (QUERY PARAM)"
         #openapi_schema["paths"]["/effects"]["get"]["summary"] = "Summary/Name for Effects (QUERY PARAM)"
+        pprint.pprint(openapi_schema["paths"]["/aa_residue_changes"]["get"]["parameters"])
+
+        # DESCRIPTION OF QUERY PARAMETERS
+        find_enpoint_parameter(openapi_schema, "/aa_residue_changes", "aa_residue_id")["description"] = "NOOOOOOOOOOOOO"
+
         app.openapi_schema = openapi_schema
         return app.openapi_schema
     return inner_f
+
+
+def find_enpoint_parameter(docs: dict, in_endpoint: str, parameter_name: str):
+    return next(x for x in docs["paths"][in_endpoint]["get"]["parameters"] if x["name"] == parameter_name)
