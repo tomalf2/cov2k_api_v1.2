@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from starlette.responses import PlainTextResponse, JSONResponse
 
 
 class MyExceptions:
@@ -39,6 +40,9 @@ class MyExceptions:
     page_0_error = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST
         , detail="You requested page number 0, but pages starts from 1. Please repeat the request with ?page=1")
+    invalid_object_id = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST
+        , detail="The given object ID is badly formatted. Hex stirng IDs should be 24-characters long.")
     @staticmethod
     def compose_request_intermediate_result_too_large(request_name):
         return HTTPException(
@@ -46,4 +50,12 @@ class MyExceptions:
             , detail=f"The intermediate entity {request_name} produces an exceptional high number of results "
                      f"(> 10000) and cannot be handled. It is suggested to retry with different parameters in "
                      f"order to reduce computational cost.")
+
+    @staticmethod
+    def response_from_exception(exc):
+        return PlainTextResponse(
+            status_code=exc.status_code,
+            content=exc.detail
+        )
+
 

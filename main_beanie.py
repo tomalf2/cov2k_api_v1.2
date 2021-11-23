@@ -35,13 +35,20 @@ async def log_request(request, call_next):
     ignored_params = 1 if request.query_params.get("page") is not None else 0
     ignored_params += 1 if request.query_params.get("limit") is not None else 0
     if len(request.query_params) - ignored_params <= 1:
-        # try:
         return await call_next(request)
-        # except:
-            # return log_and_give_bad_request_response()
     else:
         return PlainTextResponse(status_code=status.HTTP_400_BAD_REQUEST
                                  , content=f"The API accepts only one query parameter at a time")
+
+
+@app.exception_handler(bson.errors.InvalidId)
+async def unicorn_exception_handler(request: Request, exc: bson.errors.InvalidId):
+    return MyExceptions.response_from_exception(MyExceptions.invalid_object_id)
+
+
+@app.exception_handler(Exception)
+async def unicorn_exception_handler(request: Request, exc: bson.errors.InvalidId):
+    return log_and_give_bad_request_response()
 
 
 def log_and_raise_http_bad_request(additional_msg=None):
@@ -50,7 +57,7 @@ def log_and_raise_http_bad_request(additional_msg=None):
 
 
 def log_and_give_bad_request_response(additional_msg=None):
-    logger.exception(additional_msg)
+    logger.exception("" if not additional_msg else additional_msg)
     PlainTextResponse("Something went wrong", status_code=status.HTTP_400_BAD_REQUEST)
 
 
