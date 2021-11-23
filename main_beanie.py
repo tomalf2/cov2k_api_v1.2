@@ -190,9 +190,11 @@ A basic error handling mechanism prohibits users to build combinations with cycl
                 next_call_query_parameter_values.update([x[next_call_query_parameter_keyword]
                                                          for x in single_call_result])
 
-        # kill intermediate requests that generate too high cardinality results
+        # kill intermediate requests that generate too high cardinality results or with no intermediate results
         if len(next_call_query_parameter_values) > 10000:
             raise MyExceptions.compose_request_intermediate_result_too_large(this_call)
+        elif len(next_call_query_parameter_values) == 0:
+            break
 
         # set up next call
         query_param_keyword = next_call_query_parameter_keyword
@@ -245,7 +247,7 @@ async def get_variants(naming_id: Optional[str] = None
 @app.get("/variants/{variant_id}")
 async def get_variant(variant_id: str):
     """The endpoint allows to retrieve one Variant instance, corresponding to the specified identifier."""
-    return await queries.queries.get_variant(variant_id)
+    return await queries.get_variant(variant_id)
 
 
 @app.get("/namings")
@@ -326,7 +328,7 @@ The endpoint (without parameters) allows to retrieve the full list of distinct i
 Effects are linked to their Evidences and can be linked to the corresponding Variants, individual Aa Positional Changes,or AA Change Groups.\n
 Different results can be obtained by exploiting the query parameters as described below.\n
 Pagination is supported and optional (with limit and page parameters)."""
-    return await queries.get_effect(variant_id, aa_positional_change_id, evidence_id, aa_change_group_id, limit, page)
+    return await queries.get_effects(variant_id, aa_positional_change_id, evidence_id, aa_change_group_id, limit, page)
 
 
 @app.get("/effects/{effect_id}")
@@ -487,7 +489,7 @@ async def get_protein(protein_id: str):
     #   aa_sequence: "$_id.aa_sequence"
     # }}]
     # '''
-    return await queries.get_proteins(protein_id)
+    return await queries.get_protein(protein_id)
 
 
 @app.get("/protein_regions")
