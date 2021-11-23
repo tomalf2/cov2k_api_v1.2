@@ -184,7 +184,11 @@ A basic error handling mechanism prohibits users to build combinations with cycl
             single_call_result: list = await make_request(this_call, path_param, dict())
             path_param = None
             if len(call_list) == 0:
-                # build result
+                # make distinct of result
+                try:
+                    single_call_result = [frozenset(x.items()) for x in single_call_result]
+                except:
+                    logger.exception("")
                 final_result.update(single_call_result)
             else:
                 next_call_query_parameter_values.update([x[next_call_query_parameter_keyword]
