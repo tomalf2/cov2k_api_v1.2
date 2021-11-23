@@ -2466,8 +2466,8 @@ async def get_epitopes(assay_id: Optional[int] = None
     async with get_session() as session:
         if assay_id:
             query = f"{select_from_where_query} " \
-                    f"and (assay_type, mhc_allele, mhc_class) = ( " \
-                    "   select assay_type, mhc_allele, mhc_class " \
+                    f"and (cell_type, mhc_allele, mhc_class) = ( " \
+                    "   select cell_type, mhc_allele, mhc_class " \
                     "   from epitope " \
                     f"  where epitope_id = {assay_id} limit 1 ) " \
                     f"{pagination_stmt};"
@@ -2517,15 +2517,21 @@ async def get_epitope(epitope_id: int):
 async def get_assays(epitope_id: Optional[int] = None
                      , limit: int = None, page: int = None):
     pagination = OptionalPagination(limit, page)
-    pagination_stmt = f'order by assay_type, mhc_class, mhc_allele, epitope_id {pagination.stmt}'
+    pagination_stmt = f'order by e.cell_type, e.mhc_class, e.mhc_allele, e.epitope_id {pagination.stmt}'
     query_composer = FilterIntersection()
-    select_from_query = "select distinct on (assay_type, mhc_class, mhc_allele) " \
-                        "epitope_id as \"assay_id\", assay_type, mhc_class, mhc_allele as \"mhc_restriction\" " \
-                        "from epitope"
+    select_from_where_query = "select distinct on (e.cell_type, e.mhc_class, e.mhc_allele) e.epitope_id as \"assay_id\", " \
+                        "e.cell_type, e.mhc_class, e.mhc_allele as \"mhc_restriction\" " \
+                        "from epitope e " \
+                        "where virus_id = 1 "
     async with get_session() as session:
         if epitope_id:
-            query = f"{select_from_query} natural join epitope_fragment where virus_id = 1 " \
-                    f"and epi_fragment_id = {epitope_id} " \
+            query = f"{select_from_where_query} and " \
+                    "( cell_type, coalesce(mhc_class, 'NULL'), coalesce(mhc_allele, 'NULL') ) = " \
+                    "( " \
+                    "   select cell_type, coalesce(mhc_class, 'NULL'), coalesce(mhc_allele, 'NULL') " \
+                    "   from epitope natural join epitope_fragment " \
+                    f"  where virus_id = 1 and epi_fragment_id = {epitope_id} " \
+                    f") " \
                     f"{pagination_stmt};"
             assays_of_epitope = await session.execute(query)
             assays_of_epitope = assays_of_epitope.fetchall()
@@ -2535,19 +2541,19 @@ async def get_assays(epitope_id: Optional[int] = None
         if query_composer.result() != FilterIntersection.NO_FILTERS:
             return [dict(x) for x in query_composer.result()]
         else:
-            query = f"{select_from_query} where virus_id = 1 {pagination_stmt};"
+            query = f"{select_from_where_query} {pagination_stmt};"
             all_assays = await session.execute(query)
             all_assays = [dict(x) for x in all_assays.fetchall()]
             return all_assays
 
     # other option for generating an hash-like ID but is ugly
-    # select_query = "select concat_ws('#', assay_type, mhc_class, mhc_allele) as \"assay_id\", " \
-    #                "assay_type, mhc_class, mhc_allele as \"mhc_restriction\" " \
+    # select_query = "select concat_ws('#', cell_type, mhc_class, mhc_allele) as \"assay_id\", " \
+    #                "cell_type, mhc_class, mhc_allele as \"mhc_restriction\" " \
     #                "from epitope "
     # convert assay_id to binary
     # all_assays = [{
     #         "assay_id": base64.b64encode(x["assay_id"].encode()),
-    #         "assay_type": x.assay_type,
+    #         "cell_type": x.cell_type,
     #         "mhc_class": x.mhc_class,
     #         "mhc_allele": x.mhc_restriction
     #     } for x in all_assays]
@@ -2557,7 +2563,7 @@ async def get_assay(assay_id: int):
     async with get_session() as session:
         result = await session.execute(
             f"select {assay_id} as \"assay_id\", "
-            f"assay_type, mhc_class, mhc_allele as \"mhc_restriction\" "
+            f"cell_type, mhc_class, mhc_allele as \"mhc_restriction\" "
             f"from epitope "
             f"where epitope_id = {assay_id} and virus_id = 1 "
             f"limit 1;"
