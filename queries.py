@@ -2537,7 +2537,7 @@ async def get_assays(epitope_id: Optional[int] = None
         else:
             query = f"{select_from_query} where virus_id = 1 {pagination_stmt};"
             all_assays = await session.execute(query)
-            all_assays = all_assays.fetchall()
+            all_assays = [dict(x) for x in all_assays.fetchall()]
             return all_assays
 
     # other option for generating an hash-like ID but is ugly
@@ -2562,7 +2562,7 @@ async def get_assay(assay_id: int):
             f"where epitope_id = {assay_id} and virus_id = 1 "
             f"limit 1;"
         )
-        return result.fetchall()
+        return [dict(x) for x in result.fetchall()]
 
 
 class OptionalPagination:
