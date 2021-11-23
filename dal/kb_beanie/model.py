@@ -128,13 +128,20 @@ class Rule(Document):
 
 
 # Call this from within your event loop to get beanie setup.
-async def init_db_model():
+async def init_db_model(db_name: str):
     # Crete Motor client
     client = motor.motor_asyncio.AsyncIOMotorClient(
         "mongodb://localhost:27017"
     )
 
     # Init beanie with the Product document class
-    await init_beanie(database=client["cov2k-test-v2"],
+    await init_beanie(database=client[db_name],
                       document_models=[Variant, Effect, NUCChange, AAChange, EffectSource, Structure, ProteinRegion,
                                        AAResidue, Rule])
+
+
+def read_mongodb_connection_parameters(file_path: str):
+    with open(file_path, mode='r') as f:
+        f.readline()
+        db_name = f.readline().rstrip()
+    return db_name

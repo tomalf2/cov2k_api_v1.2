@@ -227,10 +227,11 @@ A basic error handling mechanism prohibits users to build combinations with cycl
 
 @app.on_event("startup")
 async def startup():
-    db_name, db_user, db_psw, db_port = read_connection_parameters_csv(f".{sep}postgresql_db_conn_params.csv")
+    db_name, db_user, db_psw, db_port = read_postgres_connection_parameters_csv(f".{sep}postgresql_db_conn_params.csv")
     config_db_engine(db_name, db_user, db_psw, db_port)
     app.openapi = custom_openapi_doc(app)
-    await init_db_model()
+    kb_db_name = read_mongodb_connection_parameters(f".{sep}mongodb_conn_params.csv")
+    await init_db_model(kb_db_name)
 
 
 @app.on_event("shutdown")

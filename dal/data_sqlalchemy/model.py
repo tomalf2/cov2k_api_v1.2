@@ -26,7 +26,7 @@ def config_db_engine(db_name, db_user, db_psw, db_port):
     logger.info('db configured')
 
 
-def read_connection_parameters_csv(file_path: str):
+def read_postgres_connection_parameters_csv(file_path: str):
     with open(file_path, mode='r') as f:
         f.readline()
         db_name, db_user, db_psw, db_port = f.readline().rstrip().split(",")
