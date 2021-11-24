@@ -484,11 +484,11 @@ async def get_nuc_annotation(nuc_annotation_id):
 
 
 @app.get("/proteins")
-async def get_proteins(nuc_annotation_id: Optional[str] =  Query(None, description="Returns the Protein corresponding to a given Nuc Annotation")
-                       , epitope_id: Optional[str] =  Query(None, description="Returns the Protein to which a given Epitope belongs")
-                       , protein_region_id: Optional[str] =  Query(None, description="Returns the Protein that contains a given Protein Region")
-                       , aa_positional_change_id: Optional[str] =  Query(None, description="Returns the Protein on which the specified Aa Positional Change falls")
-                       , aa_change_id: Optional[str] =  Query(None, description="Returns the Protein on which the specified data Aa Change falls")
+async def get_proteins(nuc_annotation_id: Optional[str] = None
+                       , epitope_id: Optional[str] = None
+                       , protein_region_id: Optional[str] = None
+                       , aa_positional_change_id: Optional[str] = None
+                       , aa_change_id: Optional[str] = None
                        , aa_length: Optional[int] = None
                        , aa_sequence: Optional[str] = None
                        , limit: Optional[int] = Query(None, ge=1), page: Optional[int] = Query(None, ge=1)):
@@ -532,7 +532,7 @@ async def get_protein(protein_id: str):
 
 
 @app.get("/protein_regions")
-async def get_protein_regions(protein_id: Optional[str] =  Query(None, description="Returns Protein Regions that belong to the given Protein")
+async def get_protein_regions(protein_id: Optional[str] = None
                               , name: Optional[str] = None
                               , type: Optional[str] = None
                               , category: Optional[str] = None
@@ -556,8 +556,8 @@ async def get_protein_region(protein_region_id: str):
 
 
 @app.get('/aa_residue_changes')
-async def get_aa_residue_changes(aa_positional_change_id: Optional[str] =  Query(None, description="Returns the AA Residue Change corresponding to a given Aa Positional Change")
-                                 , aa_residue_id: Optional[str] =  Query(None, description="Returns AA Residue Changes that involve a given Aa Residue (either as reference or alternative)")
+async def get_aa_residue_changes(aa_positional_change_id: Optional[str] = None
+                                 , aa_residue_id: Optional[str] = None
                                  , reference: Optional[str] = None
                                  , alternative: Optional[str] = None
                                  , grantham_distance: Optional[int] = None
