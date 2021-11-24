@@ -51,7 +51,7 @@ class NUCPositionalMutationProjection(MyBaseModel):
 
     class Settings:
         projection = {"nuc_positional_mutation_id": "$change_id", "reference": "$ref", "position": "$pos",
-                      "alternative": "alt", "type": "$type", "length": "$length", "_id": 0}
+                      "alternative": "$alt", "type": "$type", "length": "$length", "_id": 0}
 
 
 class EffectProjection(MyBaseModel):

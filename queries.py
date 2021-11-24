@@ -63,7 +63,9 @@ async def get_variant(variant_id: str):
 
 
 async def get_namings(variant_id: Optional[str] = None
-                      , limit: Optional[int] = None, page: Optional[int] = None):
+                      , limit: Optional[int] = None, page: Optional[int] = None
+                      , organization: Optional[str] = None
+                      , v_class: Optional[str] = None):
     pagination = OptionalPagination(limit, page)
     pipeline = []
     '''
@@ -87,6 +89,49 @@ async def get_namings(variant_id: Optional[str] = None
                 '_id': variant_id
             }
         })
+    if organization:
+        pipeline += [
+            {
+                '$match': {
+                    'aliases.org': organization
+                },
+            }, {
+                '$project': {
+                    'aliases': {
+                        '$filter': {
+                            'input': '$aliases',
+                            'as': 'al',
+                            'cond': {
+                                '$eq': [
+                                    '$$al.org', organization
+                                ]
+                            }
+                        }
+                    }
+                }
+            }]
+    if v_class:
+        pipeline += [
+            {
+                '$match': {
+                    'aliases.v_class': v_class
+                }
+            }, {
+                '$project': {
+                    'aliases': {
+                        '$filter': {
+                            'input': '$aliases',
+                            'as': 'al',
+                            'cond': {
+                                '$eq': [
+                                    '$$al.v_class', v_class
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        ]
     pipeline += [
         {
             '$project': {
@@ -166,42 +211,46 @@ async def get_naming(naming_id: str):
 async def get_contexts(variant_id: Optional[str] = None
                        , aa_positional_change_id: Optional[str] = None
                        , nuc_positional_mutation_id: Optional[str] = None
-                       , limit: Optional[int] = None, page: Optional[int] = None):
+                       , limit: Optional[int] = None, page: Optional[int] = None
+                       , owner: Optional[str] = None
+                       , rule_description: Optional[str] = None):
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if variant_id:
         #   PIPELINE FOR QUERYING VARIANT ID
-        # [{$match: {
-        #   _id: "B.1.621"
-        # }}, {$project: {
-        #   characterization: {$concatArrays: ["$org_2_aa_changes", "$org_2_nuc_changes"]}
-        # }}, {$project: {
-        #   org: "$characterization.org"
-        # }}, {$unwind: {
-        #   path: "$org",
-        #   preserveNullAndEmptyArrays: false
-        # }}, {$project: {
-        #   "context_id": {$concat: [{$toString: "$_id"}, "_" , "$org"]},
-        #   "owner": "$org"
-        # }}, {$group: {
-        #   _id: {
-        #     context_id: "$context_id",
-        #     owner: "$owner"
-        #   }
-        # }}, {$lookup: {
-        #   from: 'rule',
-        #   localField: '_id.owner',
-        #   foreignField: 'owner',
-        #   as: 'joined'
-        # }}, {$unwind: {
-        #   path: "$joined",
-        #   preserveNullAndEmptyArrays: false
-        # }}, {$project: {
-        #   context_id: "$_id.context_id",
-        #   owner: "$_id.owner",
-        #   rule_description: "$joined.rule",
-        #   _id: 0
-        # }}]
+        '''
+        [{$match: {
+          _id: "B.1.621"
+        }}, {$project: {
+          characterization: {$concatArrays: ["$org_2_aa_changes", "$org_2_nuc_changes"]}
+        }}, {$project: {
+          org: "$characterization.org"
+        }}, {$unwind: {
+          path: "$org",
+          preserveNullAndEmptyArrays: false
+        }}, {$project: {
+          "context_id": {$concat: [{$toString: "$_id"}, "_" , "$org"]},
+          "owner": "$org"
+        }}, {$group: {
+          _id: {
+            context_id: "$context_id",
+            owner: "$owner"
+          }
+        }}, {$lookup: {
+          from: 'rule',
+          localField: '_id.owner',
+          foreignField: 'owner',
+          as: 'joined'
+        }}, {$unwind: {
+          path: "$joined",
+          preserveNullAndEmptyArrays: false
+        }}, {$project: {
+          context_id: "$_id.context_id",
+          owner: "$_id.owner",
+          rule_description: "$joined.rule",
+          _id: 0
+        }}]
+        '''
         pipeline_4_variant_id = [
             {
                 '$match': {
@@ -484,6 +533,210 @@ async def get_contexts(variant_id: Optional[str] = None
             }]
         result = await Variant.aggregate(pipeline_4_nuc_change_id).to_list()
         query_composer.add_filter(nuc_positional_mutation_id, result)
+    if owner:
+        '''
+        [{$project: {
+          characterization: {
+            $concatArrays: ["$org_2_aa_changes", "$org_2_nuc_changes"]
+          }
+        }}, {$project: {
+          org: "$characterization.org"
+        }}, {$unwind: {
+          path: "$org",
+          preserveNullAndEmptyArrays: false
+        }}, {$match: {
+          org: "phe"
+        }}, {$project: {
+          "context_id": {
+            $concat: [{
+              $toString: "$_id"
+            }, "_", "$org"]
+          },
+          "owner": "$org"
+        }}, {$group: {
+          _id: {
+            context_id: "$context_id",
+            owner: "$owner"
+          }
+        }}, {$lookup: {
+          from: 'rule',
+          localField: '_id.owner',
+          foreignField: 'owner',
+          as: 'joined'
+        }}, {$unwind: {
+          path: "$joined",
+          preserveNullAndEmptyArrays: false
+        }}, {$project: {
+          context_id: "$_id.context_id",
+          owner: "$_id.owner",
+          rule_description: "$joined.rule",
+          _id: 0
+        }}]
+        '''
+        pipeline_4_owner = [
+            {
+                '$project': {
+                    'characterization': {
+                        '$concatArrays': [
+                            '$org_2_aa_changes', '$org_2_nuc_changes'
+                        ]
+                    }
+                }
+            }, {
+                '$project': {
+                    'org': '$characterization.org'
+                }
+            }, {
+                '$unwind': {
+                    'path': '$org',
+                    'preserveNullAndEmptyArrays': False
+                }
+            }, {
+                '$match': {
+                    'org': owner
+                }
+            }, {
+                '$project': {
+                    'context_id': {
+                        '$concat': [
+                            {
+                                '$toString': '$_id'
+                            }, '_', '$org'
+                        ]
+                    },
+                    'owner': '$org'
+                }
+            }, {
+                '$group': {
+                    '_id': {
+                        'context_id': '$context_id',
+                        'owner': '$owner'
+                    }
+                }
+            }, {
+                '$lookup': {
+                    'from': 'rule',
+                    'localField': '_id.owner',
+                    'foreignField': 'owner',
+                    'as': 'joined'
+                }
+            }, {
+                '$unwind': {
+                    'path': '$joined',
+                    'preserveNullAndEmptyArrays': False
+                }
+            }, {
+                '$project': {
+                    'context_id': '$_id.context_id',
+                    'owner': '$_id.owner',
+                    'rule_description': '$joined.rule',
+                    '_id': 0
+                }
+            }]
+        result = await Variant.aggregate(pipeline_4_owner).to_list()
+        query_composer.add_filter(owner, result)
+    if rule_description:
+        '''
+        [{$project: {
+          characterization: {
+            $concatArrays: ["$org_2_aa_changes", "$org_2_nuc_changes"]
+          }
+        }}, {$project: {
+          org: "$characterization.org"
+        }}, {$unwind: {
+          path: "$org",
+          preserveNullAndEmptyArrays: false
+        }}, {$project: {
+          "context_id": {
+            $concat: [{
+              $toString: "$_id"
+            }, "_", "$org"]
+          },
+          "owner": "$org"
+        }}, {$group: {
+          _id: {
+            context_id: "$context_id",
+            owner: "$owner"
+          }
+        }}, {$lookup: {
+          from: 'rule',
+          localField: '_id.owner',
+          foreignField: 'owner',
+          as: 'joined'
+        }}, {$unwind: {
+          path: "$joined",
+          preserveNullAndEmptyArrays: false
+        }}, {$project: {
+          context_id: "$_id.context_id",
+          owner: "$_id.owner",
+          rule_description: "$joined.rule",
+          _id: 0
+        }}, {$match: {
+          rule_description: /.*BOOOOOH.*/
+        }}]
+        '''
+        pipeline_4_rule_description = [
+            {
+                '$project': {
+                    'characterization': {
+                        '$concatArrays': [
+                            '$org_2_aa_changes', '$org_2_nuc_changes'
+                        ]
+                    }
+                }
+            }, {
+                '$project': {
+                    'org': '$characterization.org'
+                }
+            }, {
+                '$unwind': {
+                    'path': '$org',
+                    'preserveNullAndEmptyArrays': False
+                }
+            }, {
+                '$project': {
+                    'context_id': {
+                        '$concat': [
+                            {
+                                '$toString': '$_id'
+                            }, '_', '$org'
+                        ]
+                    },
+                    'owner': '$org'
+                }
+            }, {
+                '$group': {
+                    '_id': {
+                        'context_id': '$context_id',
+                        'owner': '$owner'
+                    }
+                }
+            }, {
+                '$lookup': {
+                    'from': 'rule',
+                    'localField': '_id.owner',
+                    'foreignField': 'owner',
+                    'as': 'joined'
+                }
+            }, {
+                '$unwind': {
+                    'path': '$joined',
+                    'preserveNullAndEmptyArrays': False
+                }
+            }, {
+                '$project': {
+                    'context_id': '$_id.context_id',
+                    'owner': '$_id.owner',
+                    'rule_description': '$joined.rule',
+                    '_id': 0
+                }
+            }, {
+                '$match': {
+                    'rule_description': re.compile(rf".*{rule_description}.*")
+                }
+            }]
+        result = await Variant.aggregate(pipeline_4_rule_description).to_list()
+        query_composer.add_filter(rule_description, result)
 
     query_composer.intersect_results(lambda x: x["context_id"])
     if query_composer.result() != query_composer.NO_FILTERS:
@@ -616,7 +869,10 @@ async def get_effects(variant_id: Optional[str] = None
                       , aa_positional_change_id: Optional[str] = None
                       , evidence_id: Optional[str] = None
                       , aa_change_group_id: Optional[str] = None
-                      , limit: Optional[int] = None, page: Optional[int] = None):
+                      , limit: Optional[int] = None, page: Optional[int] = None
+                      , _type: Optional[str] = None
+                      , lv: Optional[str] = None
+                      , method: Optional[str] = None):
     pagination = OptionalPagination(limit, page)
     effects_of_aa_change = None
     if aa_positional_change_id:
@@ -712,12 +968,39 @@ async def get_effects(variant_id: Optional[str] = None
             }
             , projection_model=EffectProjection).to_list()
         effects_of_aa_group = list(map(vars, effects_of_aa_group))
+    effects_of_type = None
+    if _type:
+        effects_of_type = await Effect.find(
+            {
+                'type': _type
+            }
+            , projection_model=EffectProjection).to_list()
+        effects_of_type = list(map(vars, effects_of_type))
+    effects_of_level = None
+    if lv:
+        effects_of_level = await Effect.find(
+            {
+                'lv': lv
+            }
+            , projection_model=EffectProjection).to_list()
+        effects_of_level = list(map(vars, effects_of_level))
+    effects_of_method = None
+    if method:
+        effects_of_method = await Effect.find(
+            {
+                'method': method
+            }
+            , projection_model=EffectProjection).to_list()
+        effects_of_method = list(map(vars, effects_of_method))
 
     filter_intersection = FilterIntersection() \
         .add_filter(aa_positional_change_id, effects_of_aa_change) \
         .add_filter(variant_id, effects_of_var) \
         .add_filter(evidence_id, effects_of_source) \
         .add_filter(aa_change_group_id, effects_of_aa_group) \
+        .add_filter(_type, effects_of_type) \
+        .add_filter(lv, effects_of_level) \
+        .add_filter(method, effects_of_method) \
         .intersect_results(lambda an_effect: an_effect.effect_id)
     if filter_intersection.result() != FilterIntersection.NO_FILTERS:
         result = filter_intersection.result()
@@ -739,11 +1022,37 @@ async def get_effect(effect_id: Optional[str] = None):
 
 
 async def get_evidences(effect_id: Optional[str] = None
-                        , limit: Optional[int] = None, page: Optional[int] = None):
+                        , limit: Optional[int] = None, page: Optional[int] = None
+                        , citation: Optional[str] = None
+                        , _type: Optional[str] = None
+                        , uri: Optional[str] = None
+                        , publisher: Optional[str] = None):
     pagination = OptionalPagination(limit, page)
+    query_composer = FilterIntersection()
     if effect_id:
         result = await EffectSource.find({'effect_ids': {'$elemMatch': {'$eq': PydanticObjectId(effect_id)}}}
                                          , projection_model=EvidenceProjection).to_list()
+        query_composer.add_filter(effect_id, result)
+    if citation:
+        result = await EffectSource.find({'citation': citation}
+                                         , projection_model=EvidenceProjection).to_list()
+        query_composer.add_filter(citation, result)
+    if _type:
+        result = await EffectSource.find({'type': _type}
+                                         , projection_model=EvidenceProjection).to_list()
+        query_composer.add_filter(_type, result)
+    if uri:
+        result = await EffectSource.find({'uri': uri}
+                                         , projection_model=EvidenceProjection).to_list()
+        query_composer.add_filter(uri, result)
+    if publisher:
+        result = await EffectSource.find({'publisher': publisher}
+                                         , projection_model=EvidenceProjection).to_list()
+        query_composer.add_filter(publisher, result)
+
+    query_composer.intersect_results(lambda x: x["evidence_id"])
+    if query_composer.result() != FilterIntersection.NO_FILTERS:
+        result = query_composer.result()
     else:
         result = await EffectSource.find_all(projection_model=EvidenceProjection).to_list()
     result = list(map(vars, result))
@@ -763,8 +1072,13 @@ async def get_evidence(evidence_id: str):
 async def get_nuc_positional_mutations(context_id: Optional[str] = None
                                        , nuc_annotation_id: Optional[str] = None
                                        , nuc_mutation_id: Optional[str] = None
-                                       , limit: Optional[int] = None,
-                                       page: Optional[int] = None):
+                                       , limit: Optional[int] = None
+                                       , page: Optional[int] = None
+                                       , reference: Optional[str] = None
+                                       , position: Optional[int] = None
+                                       , alternative: Optional[str] = None
+                                       , _type: Optional[str] = None
+                                       , length: Optional[int] = None):
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     mutations_of_context = None
@@ -955,17 +1269,47 @@ async def get_nuc_positional_mutations(context_id: Optional[str] = None
         kb_nuc_mutation_id = vcm_nuc_mut_2_kb_nuc_mut(nuc_mutation_id)
         mutation_matching_nuc_mutation_id = await get_nuc_positional_mutation(kb_nuc_mutation_id)
 
+    mutations_with_reference = None
+    if reference:
+        mutations_with_reference = await NUCChange\
+            .find({"ref": reference.upper()}, projection_model=NUCPositionalMutationProjection).to_list()
+
+    mutations_in_position = None
+    if position is not None:
+        mutations_in_position = await NUCChange\
+            .find({"pos": position}, projection_model=NUCPositionalMutationProjection).to_list()
+
+    mutations_with_alternative = None
+    if alternative:
+        mutations_with_alternative = await NUCChange\
+            .find({"alt": alternative.upper()}, projection_model=NUCPositionalMutationProjection).to_list()
+
+    mutations_of_type = None
+    if _type:
+        mutations_of_type = await NUCChange\
+            .find({"type": _type.upper()}, projection_model=NUCPositionalMutationProjection).to_list()
+
+    mutations_with_length = None
+    if length is not None:
+        mutations_with_length = await NUCChange\
+            .find({"length": length}, projection_model=NUCPositionalMutationProjection).to_list()
+
     query_composer \
         .add_filter(context_id, mutations_of_context) \
         .add_filter(nuc_annotation_id, mutations_in_annotation) \
         .add_filter(nuc_mutation_id, mutation_matching_nuc_mutation_id) \
+        .add_filter(reference, mutations_with_reference) \
+        .add_filter(position, mutations_in_position) \
+        .add_filter(alternative, mutations_with_alternative) \
+        .add_filter(_type, mutations_of_type) \
+        .add_filter(length, mutations_with_length) \
         .intersect_results(lambda x: x["nuc_positional_mutation_id"])
 
     if query_composer.result() != FilterIntersection.NO_FILTERS:
         result = query_composer.result()
     else:
         result = await NUCChange.find_all(projection_model=NUCPositionalMutationProjection).to_list()
-        result = list(map(vars, result))
+    result = list(map(vars, result))
     if pagination:
         return sorted(result, key=lambda x: x["nuc_positional_mutation_id"])[pagination.first_idx:pagination.last_idx]
     else:
@@ -986,9 +1330,12 @@ async def get_aa_positional_changes(context_id: Optional[str] = None
                                     , aa_residue_change_id: Optional[str] = None
                                     , epitope_id: Optional[str] = None
                                     , aa_change_id: Optional[str] = None
-                                    # , reference: Optional[str] = None
-                                    # , alternative: Optional[str] = None
                                     , limit: Optional[int] = None, page: Optional[int] = None
+                                    , reference: Optional[str] = None
+                                    , position: Optional[int] = None
+                                    , alternative: Optional[str] = None
+                                    , _type: Optional[str] = None
+                                    , length: Optional[int] = None
                                     ):
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
@@ -1289,15 +1636,26 @@ async def get_aa_positional_changes(context_id: Optional[str] = None
             query_composer.add_filter(epitope_id, aa_changes_over_epitope)
     if aa_change_id:
         query_composer.add_filter(aa_change_id, await get_aa_positional_change(aa_change_id))
-
-    # if reference:
-    #     changes_with_ref = await AAChange\
-    #         .find({"ref": reference}, projection_model=AAPositionalChangeProjection).to_list()
-    #     query_composer.add_filter(reference, changes_with_ref)
-    # if alternative:
-    #     change_with_alt = await AAChange\
-    #         .find({"alt": alternative}, projection_model=AAPositionalChangeProjection).to_list()
-    #     query_composer.add_filter(alternative, change_with_alt)
+    if reference:
+        changes_with_ref = await AAChange\
+            .find({"ref": reference.upper()}, projection_model=AAPositionalChangeProjection).to_list()
+        query_composer.add_filter(reference, changes_with_ref)
+    if position is not None:
+        changes_in_pos = await AAChange\
+            .find({"pos": position}, projection_model=AAPositionalChangeProjection).to_list()
+        query_composer.add_filter(position, changes_in_pos)
+    if alternative:
+        change_with_alt = await AAChange\
+            .find({"alt": alternative.upper()}, projection_model=AAPositionalChangeProjection).to_list()
+        query_composer.add_filter(alternative, change_with_alt)
+    if _type:
+        changes_of_type = await AAChange\
+            .find({"type": _type.upper()}, projection_model=AAPositionalChangeProjection).to_list()
+        query_composer.add_filter(_type, changes_of_type)
+    if length is not None:
+        changes_with_len = await AAChange\
+            .find({"length": length}, projection_model=AAPositionalChangeProjection).to_list()
+        query_composer.add_filter(length, changes_with_len)
 
     # intersect results up to here
     query_composer.intersect_results(lambda x: x["aa_positional_change_id"])
@@ -1363,8 +1721,10 @@ async def get_aa_change_group(aa_change_group_id: str):
 
 async def get_nuc_annotations(protein_id: Optional[str] = None
                               , nuc_positional_mutation_id: Optional[str] = None
-                              # , pos: Optional[int] = None
                               , limit: Optional[int] = None, page: Optional[int] = None
+                              , name: Optional[str] = None
+                              , start_on_ref: Optional[int] = None
+                              , stop_on_ref: Optional[int] = None
                               ):
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
@@ -1456,10 +1816,18 @@ async def get_nuc_annotations(protein_id: Optional[str] = None
             }]
         ).to_list()
         query_composer.add_filter(nuc_positional_mutation_id, annotations_of_positional_mutation)
-    # if pos:
-    #     genes_at_pos = await Structure.find({"start_on_ref": {"$lte": pos}, "stop_on_ref": {"$gte": pos}},
-    #                                         projection_model=GeneProjection).to_list()
-    #     query_composer.add_filter(pos, genes_at_pos)
+    if name:
+        genes_with_name = await Structure.find({"annotation_id": name}
+                                               , projection_model=NucAnnotationProjection).to_list()
+        query_composer.add_filter(name, genes_with_name)
+    if start_on_ref:
+        genes_starting_at = await Structure.find({"start_on_ref": start_on_ref}
+                                                 , projection_model=NucAnnotationProjection).to_list()
+        query_composer.add_filter(start_on_ref, genes_starting_at)
+    if stop_on_ref:
+        genes_ending_at = await Structure.find({"stop_on_ref": stop_on_ref}
+                                               , projection_model=NucAnnotationProjection).to_list()
+        query_composer.add_filter(stop_on_ref, genes_ending_at)
 
     query_composer.intersect_results(lambda x: x["nuc_annotation_id"])
     if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -1485,7 +1853,9 @@ async def get_proteins(nuc_annotation_id: Optional[str] = None
                        , protein_region_id: Optional[str] = None
                        , aa_positional_change_id: Optional[str] = None
                        , aa_change_id: Optional[str] = None
-                       , limit: Optional[int] = None, page: Optional[int] = None):
+                       , limit: Optional[int] = None, page: Optional[int] = None
+                       , aa_length: Optional[int] = None
+                       , aa_sequence: Optional[str] = None):
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if nuc_annotation_id:
@@ -1726,6 +2096,130 @@ async def get_proteins(nuc_annotation_id: Optional[str] = None
                 }]
             ).to_list()
             query_composer.add_filter(aa_positional_change_id, protein_of_aa_change)
+    if aa_length:
+        '''
+        [{$match: {
+          "protein_characterization.aa_length": 7097
+        }}, {$project: {
+          protein_characterization: {
+            $filter: {
+              input: "$protein_characterization",
+              as: "prot",
+              cond: {
+                $eq: ["$$prot.aa_length", 7097]
+              }
+            }
+          }
+        }}, {$unwind: {
+          "path": "$protein_characterization",
+          "preserveNullAndEmptyArrays": false
+        }}, {$group: {
+          _id: "$protein_characterization"
+        }}, {$replaceWith: {
+          protein_id: "$_id.protein_name",
+          aa_length: "$_id.aa_length",
+          aa_sequence: "$_id.aa_sequence"
+        }}]
+        '''
+        pipeline_4_prot_length = [
+            {
+                '$match': {
+                    'protein_characterization.aa_length': aa_length
+                }
+            }, {
+                '$project': {
+                    'protein_characterization': {
+                        '$filter': {
+                            'input': '$protein_characterization',
+                            'as': 'prot',
+                            'cond': {
+                                '$eq': [
+                                    '$$prot.aa_length', aa_length
+                                ]
+                            }
+                        }
+                    }
+                }
+            }, {
+                '$unwind': {
+                    'path': '$protein_characterization',
+                    'preserveNullAndEmptyArrays': False
+                }
+            }, {
+                '$group': {
+                    '_id': '$protein_characterization'
+                }
+            }, {
+                '$replaceWith': {
+                    'protein_id': '$_id.protein_name',
+                    'aa_length': '$_id.aa_length',
+                    'aa_sequence': '$_id.aa_sequence'
+                }
+            }]
+        proteins_of_length = await Structure.aggregate(pipeline_4_prot_length).to_list()
+        query_composer.add_filter(aa_length, proteins_of_length)
+    if aa_sequence:
+        '''
+        [{$match: {
+          "protein_characterization.aa_sequence": "AIEIE BRAZOFF"
+        }}, {$project: {
+          protein_characterization: {
+            $filter: {
+              input: "$protein_characterization",
+              as: "prot",
+              cond: {
+                $eq: ["$$prot.aa_seqeunce", "AIEIE BRAZOFF"]
+              }
+            }
+          }
+        }}, {$unwind: {
+          "path": "$protein_characterization",
+          "preserveNullAndEmptyArrays": false
+        }}, {$group: {
+          _id: "$protein_characterization"
+        }}, {$replaceWith: {
+          protein_id: "$_id.protein_name",
+          aa_length: "$_id.aa_length",
+          aa_sequence: "$_id.aa_sequence"
+        }}]
+        '''
+        proteins_with_aa_seq = await Structure.aggregate([
+            {
+                '$match': {
+                    'protein_characterization.aa_sequence': aa_sequence
+                }
+            }, {
+                '$project': {
+                    'protein_characterization': {
+                        '$filter': {
+                            'input': '$protein_characterization',
+                            'as': 'prot',
+                            'cond': {
+                                '$eq': [
+                                    '$$prot.aa_sequence', aa_sequence
+                                ]
+                            }
+                        }
+                    }
+                }
+            }, {
+                '$unwind': {
+                    'path': '$protein_characterization',
+                    'preserveNullAndEmptyArrays': False
+                }
+            }, {
+                '$group': {
+                    '_id': '$protein_characterization'
+                }
+            }, {
+                '$replaceWith': {
+                    'protein_id': '$_id.protein_name',
+                    'aa_length': '$_id.aa_length',
+                    'aa_sequence': '$_id.aa_sequence'
+                }
+            }
+        ]).to_list()
+        query_composer.add_filter(aa_sequence, proteins_with_aa_seq)
 
     query_composer.intersect_results(lambda x: x["protein_id"])
     if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -1826,7 +2320,12 @@ async def get_protein(protein_id: str):
 
 
 async def get_protein_regions(protein_id: Optional[str] = None
-                              , limit: Optional[int] = None, page: Optional[int] = None):
+                              , limit: Optional[int] = None, page: Optional[int] = None
+                              , name: Optional[str] = None
+                              , _type: Optional[str] = None
+                              , category: Optional[str] = None
+                              , start_on_protein: Optional[int] = None
+                              , stop_on_protein: Optional[int] = None):
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if protein_id:
@@ -1834,6 +2333,30 @@ async def get_protein_regions(protein_id: Optional[str] = None
             "protein_name": protein_id
         }, projection_model=ProteinRegionProjection).to_list()
         query_composer.add_filter(protein_id, regions_in_protein)
+    if name:
+        regions_with_name = await ProteinRegion.find({"description": name}
+                                                     , projection_model=ProteinRegionProjection).to_list()
+        query_composer.add_filter(name, regions_with_name)
+    if _type:
+        regions_of_type = await ProteinRegion.find({
+            "type": _type
+        }, projection_model=ProteinRegionProjection).to_list()
+        query_composer.add_filter(_type, regions_of_type)
+    if category:
+        regions_of_cat = await ProteinRegion.find({
+            "category": category
+        }, projection_model=ProteinRegionProjection).to_list()
+        query_composer.add_filter(category, regions_of_cat)
+    if start_on_protein is not None:
+        regions_starting_at = await ProteinRegion.find({
+            "start_on_prot": str(start_on_protein)
+        } , projection_model=ProteinRegionProjection).to_list()
+        query_composer.add_filter(start_on_protein, regions_starting_at)
+    if stop_on_protein is not None:
+        regions_ending_at = await ProteinRegion.find({
+            "stop_on_prot": str(stop_on_protein)
+        }, projection_model=ProteinRegionProjection).to_list()
+        query_composer.add_filter(stop_on_protein, regions_ending_at)
 
     query_composer.intersect_results(lambda x: x.protein_region_id)
     if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -1858,7 +2381,9 @@ async def get_aa_residue_changes(aa_positional_change_id: Optional[str] = None
                                  , aa_residue_id: Optional[str] = None
                                  , reference: Optional[str] = None
                                  , alternative: Optional[str] = None
-                                 , limit: Optional[int] = None, page: Optional[int] = None):
+                                 , limit: Optional[int] = None, page: Optional[int] = None
+                                 , grantham_distance: Optional[int] = None
+                                 , _type: Optional[str] = None):
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if aa_positional_change_id and reference and alternative \
@@ -2050,6 +2575,248 @@ async def get_aa_residue_changes(aa_positional_change_id: Optional[str] = None
         residue_change_with_a_single_residue = await AAResidue.aggregate(pipeline).to_list()
         query_composer.add_filter(a_residue, residue_change_with_a_single_residue)
 
+    if grantham_distance:
+        '''
+        [{$project: {
+          residue: 1,
+          grantham_distance: {
+            $objectToArray: "$grantham_distance"
+          }
+        }}, {$match: {
+          "grantham_distance.v": "112"
+        }}, {$unwind: {
+          path: "$grantham_distance",
+          preserveNullAndEmptyArrays: false
+        }}, {$match: {
+          "grantham_distance.v": "112"
+        }}, {$project: {
+          aa_residue_change_id: {
+            $concat: ["$residue", "$grantham_distance.k"]
+          },
+          reference: "$residue",
+          alternative: "$grantham_distance.k",
+          grantham_distance: {
+            $toInt: "$grantham_distance.v"
+          },
+          _id: 0
+        }}, {$addFields: {
+          type: {
+            $cond: [{
+              $gte: ["$grantham_distance", 66]
+            }, "radical", "conservative"]
+          }
+        }}]
+        '''
+        changes_w_gt = await AAResidue.aggregate([
+            {
+                '$project': {
+                    'residue': 1,
+                    'grantham_distance': {
+                        '$objectToArray': '$grantham_distance'
+                    }
+                }
+            }, {
+                '$match': {
+                    'grantham_distance.v': str(grantham_distance)
+                }
+            }, {
+                '$unwind': {
+                    'path': '$grantham_distance',
+                    'preserveNullAndEmptyArrays': False
+                }
+            }, {
+                '$match': {
+                    'grantham_distance.v': str(grantham_distance)
+                }
+            }, {
+                '$project': {
+                    'aa_residue_change_id': {
+                        '$concat': [
+                            '$residue', '$grantham_distance.k'
+                        ]
+                    },
+                    'reference': '$residue',
+                    'alternative': '$grantham_distance.k',
+                    'grantham_distance': {
+                        '$toInt': '$grantham_distance.v'
+                    },
+                    '_id': 0
+                }
+            }, {
+                '$addFields': {
+                    'type': {
+                        '$cond': [
+                            {
+                                '$gte': [
+                                    '$grantham_distance', 66
+                                ]
+                            }, 'radical', 'conservative'
+                        ]
+                    }
+                }
+            }
+        ]).to_list()
+        query_composer.add_filter(grantham_distance, changes_w_gt)
+    if _type:
+        if _type.lower() == "radical":
+            '''
+            [{$project: {
+              residue: 1,
+              grantham_distance: {
+                $objectToArray: "$grantham_distance"
+              }
+            }}, {$unwind: {
+              path: "$grantham_distance",
+              preserveNullAndEmptyArrays: false
+            }}, {$project: {
+              aa_residue_change_id: {
+                $concat: ["$residue", "$grantham_distance.k"]
+              },
+              reference: "$residue",
+              alternative: "$grantham_distance.k",
+              grantham_distance: {
+                $toInt: "$grantham_distance.v"
+              },
+              _id: 0
+            }}, {$match: {
+              grantham_distance: {$gte: 66}
+            }}, {$addFields: {
+              type: {
+                $cond: [{
+                  $gte: ["$grantham_distance", 66]
+                }, "radical", "conservative"]
+              }
+            }}]
+            '''
+            changes_radical = await AAResidue.aggregate([
+                {
+                    '$project': {
+                        'residue': 1,
+                        'grantham_distance': {
+                            '$objectToArray': '$grantham_distance'
+                        }
+                    }
+                }, {
+                    '$unwind': {
+                        'path': '$grantham_distance',
+                        'preserveNullAndEmptyArrays': False
+                    }
+                }, {
+                    '$project': {
+                        'aa_residue_change_id': {
+                            '$concat': [
+                                '$residue', '$grantham_distance.k'
+                            ]
+                        },
+                        'reference': '$residue',
+                        'alternative': '$grantham_distance.k',
+                        'grantham_distance': {
+                            '$toInt': '$grantham_distance.v'
+                        },
+                        '_id': 0
+                    }
+                }, {
+                    '$match': {
+                        'grantham_distance': {
+                            '$gte': 66
+                        }
+                    }
+                }, {
+                    '$addFields': {
+                        'type': {
+                            '$cond': [
+                                {
+                                    '$gte': [
+                                        '$grantham_distance', 66
+                                    ]
+                                }, 'radical', 'conservative'
+                            ]
+                        }
+                    }
+                }
+            ]).to_list()
+            query_composer.add_filter(_type, changes_radical)
+        elif _type.lower() == "conservative":
+            '''
+            [{$project: {
+              residue: 1,
+              grantham_distance: {
+                $objectToArray: "$grantham_distance"
+              }
+            }}, {$unwind: {
+              path: "$grantham_distance",
+              preserveNullAndEmptyArrays: false
+            }}, {$project: {
+              aa_residue_change_id: {
+                $concat: ["$residue", "$grantham_distance.k"]
+              },
+              reference: "$residue",
+              alternative: "$grantham_distance.k",
+              grantham_distance: {
+                $toInt: "$grantham_distance.v"
+              },
+              _id: 0
+            }}, {$match: {
+              grantham_distance: {$lt: 66}
+            }}, {$addFields: {
+              type: {
+                $cond: [{
+                  $gte: ["$grantham_distance", 66]
+                }, "radical", "conservative"]
+              }
+            }}]
+            '''
+            changes_conservative = await AAResidue.aggregate([
+                {
+                    '$project': {
+                        'residue': 1,
+                        'grantham_distance': {
+                            '$objectToArray': '$grantham_distance'
+                        }
+                    }
+                }, {
+                    '$unwind': {
+                        'path': '$grantham_distance',
+                        'preserveNullAndEmptyArrays': False
+                    }
+                }, {
+                    '$project': {
+                        'aa_residue_change_id': {
+                            '$concat': [
+                                '$residue', '$grantham_distance.k'
+                            ]
+                        },
+                        'reference': '$residue',
+                        'alternative': '$grantham_distance.k',
+                        'grantham_distance': {
+                            '$toInt': '$grantham_distance.v'
+                        },
+                        '_id': 0
+                    }
+                }, {
+                    '$match': {
+                        'grantham_distance': {
+                            '$lt': 66
+                        }
+                    }
+                }, {
+                    '$addFields': {
+                        'type': {
+                            '$cond': [
+                                {
+                                    '$gte': [
+                                        '$grantham_distance', 66
+                                    ]
+                                }, 'radical', 'conservative'
+                            ]
+                        }
+                    }
+                }
+            ]).to_list()
+            query_composer.add_filter(_type, changes_conservative)
+        else:
+            query_composer.add_filter(_type, [])
+
     query_composer.intersect_results(lambda x: x["aa_residue_change_id"])
     if query_composer.result() != FilterIntersection.NO_FILTERS:
         result = query_composer.result()
@@ -2174,7 +2941,17 @@ async def get_aa_residue_change(aa_residue_change_id: str):
 
 async def get_aa_residues(request: Request
                           , aa_residue_change_id: Optional[str] = None
-                          , limit: Optional[int] = None, page: Optional[int] = None):
+                          , limit: Optional[int] = None, page: Optional[int] = None
+                          , molecular_weight: Optional[int] = None
+                          , isoelectric_point: Optional[float] = None
+                          , hydrophobicity: Optional[float] = None
+                          , potential_side_chain_h_bonds: Optional[int] = None
+                          , polarity: Optional[str] = None
+                          , r_group_structure: Optional[str] = None
+                          , charge: Optional[str] = None
+                          , essentiality: Optional[str] = None
+                          , side_chain_flexibility: Optional[str] = None
+                          , chemical_group_in_the_side_chain: Optional[str] = None):
     #    :param aa_residue_change_id: a two letter string
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
@@ -2192,6 +2969,36 @@ async def get_aa_residues(request: Request
         # do the query
         residues_of_residue_change_id = await AAResidue.find(query, projection_model=AAResidueProjection).to_list()
         query_composer.add_filter(aa_residue_change_id, residues_of_residue_change_id)
+    if molecular_weight:
+        result = await AAResidue.find({"molecular_weight": molecular_weight}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(molecular_weight, result)
+    if isoelectric_point:
+        result = await AAResidue.find({"isoelectric_point": isoelectric_point}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(isoelectric_point, result)
+    if hydrophobicity:
+        result = await AAResidue.find({"hydrophobicity": hydrophobicity}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(hydrophobicity, result)
+    if potential_side_chain_h_bonds:
+        result = await AAResidue.find({"potential_side_chain_h_bonds": potential_side_chain_h_bonds}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(potential_side_chain_h_bonds, result)
+    if polarity:
+        result = await AAResidue.find({"polarity": polarity}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(polarity, result)
+    if r_group_structure:
+        result = await AAResidue.find({"r_group_structure": r_group_structure}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(r_group_structure, result)
+    if charge:
+        result = await AAResidue.find({"charge": charge}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(charge, result)
+    if essentiality:
+        result = await AAResidue.find({"essentiality": essentiality}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(essentiality, result)
+    if side_chain_flexibility:
+        result = await AAResidue.find({"side_chain_flexibility": side_chain_flexibility}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(side_chain_flexibility, result)
+    if chemical_group_in_the_side_chain:
+        result = await AAResidue.find({"chemical_group_in_the_side_chain": chemical_group_in_the_side_chain}, projection_model=AAResidueProjection).to_list()
+        query_composer.add_filter(chemical_group_in_the_side_chain, result)
 
     query_composer.intersect_results(lambda x: x.aa_residue_id)
     if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -2214,13 +3021,19 @@ async def get_aa_residue(aa_residue_id: str):
 async def get_sequences(nuc_mutation_id: Optional[str] = None
                         , aa_change_id: Optional[str] = None
                         , host_sample_id: Optional[int] = None
-                        , limit: int = None, page: int = None):
+                        , limit: int = None, page: int = None
+                        , accession_id: Optional[str] = None
+                        , source_database: Optional[str] = None
+                        , length: Optional[int] = None
+                        , n_percentage: Optional[float] = None
+                        , gc_percentage: Optional[float] = None):
     pagination = OptionalPagination(limit, page)
     final_pagination_stmt = f'order by sequence_id {pagination.stmt}'
     async with get_session() as session:
         query_composer = FilterIntersection()
 
-        select_query = "select sequence_id, accession_id, database_source, length, n_percentage, gc_percentage "
+        select_query = "select sequence_id, accession_id, database_source as \"source_database\", length, " \
+                       "n_percentage, gc_percentage "
         if nuc_mutation_id:
             nuc_mutation_id = nuc_mutation_id.lower()
             nuc_change_re_match = re.fullmatch(r'([a-zA-Z\-\*]*)([\d/]+)([a-zA-Z\-\*]+)', nuc_mutation_id)
@@ -2258,6 +3071,41 @@ async def get_sequences(nuc_mutation_id: Optional[str] = None
             sequences_of_host_sample = await session.execute(query)
             sequences_of_host_sample = sequences_of_host_sample.fetchall()
             query_composer.add_filter(host_sample_id, sequences_of_host_sample)
+        if accession_id:
+            query = f"{select_query} from sequence natural join sequencing_project " \
+                    f"where accession_id = '{accession_id}' and virus_id = 1 " \
+                    f"{final_pagination_stmt};"
+            sequence_with_acc_id = await session.execute(query)
+            sequence_with_acc_id = sequence_with_acc_id.fetchall()
+            query_composer.add_filter(accession_id, sequence_with_acc_id)
+        if source_database:
+            query = f"{select_query} from sequence natural join sequencing_project " \
+                    f"where virus_id = 1 and database_source = '{source_database}' " \
+                    f"{final_pagination_stmt};"
+            sequences_of_source = await session.execute(query)
+            sequences_of_source = sequences_of_source.fetchall()
+            query_composer.add_filter(source_database, sequences_of_source)
+        if length:
+            query = f"{select_query} from sequence natural join sequencing_project " \
+                    f"where virus_id = 1 and length = {length} " \
+                    f"{final_pagination_stmt};"
+            sequences_w_length = await session.execute(query)
+            sequences_w_length = sequences_w_length.fetchall()
+            query_composer.add_filter(length, sequences_w_length)
+        if n_percentage:
+            query = f"{select_query} from sequence natural join sequencing_project " \
+                    f"where virus_id = 1 and n_percentage = {n_percentage} " \
+                    f"{final_pagination_stmt};"
+            sequences_w_Ns = await session.execute(query)
+            sequences_w_Ns = sequences_w_Ns.fetchall()
+            query_composer.add_filter(n_percentage, sequences_w_Ns)
+        if gc_percentage:
+            query = f"{select_query} from sequence natural join sequencing_project " \
+                    f"where virus_id = 1 and gc_percentage = {gc_percentage} " \
+                    f"{final_pagination_stmt};"
+            sequences_w_GCs = await session.execute(query)
+            sequences_w_GCs = sequences_w_GCs.fetchall()
+            query_composer.add_filter(gc_percentage, sequences_w_GCs)
 
         query_composer.intersect_results(lambda x: x.sequence_id)
         if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -2289,7 +3137,8 @@ async def get_sequences(nuc_mutation_id: Optional[str] = None
 
 async def get_sequence(sequence_id: int):
     async with get_session() as session:
-        query = f"select sequence_id, accession_id, database_source, length, n_percentage, gc_percentage  " \
+        query = f"select sequence_id, accession_id, database_source as \"source_database\", length, " \
+                f"n_percentage, gc_percentage  " \
                 f"from sequence natural join sequencing_project " \
                 f"where sequence_id = {sequence_id} " \
                 f"limit 1;"
@@ -2299,7 +3148,12 @@ async def get_sequence(sequence_id: int):
 
 
 async def get_host_samples(sequence_id: Optional[int] = None
-                           , limit: int = None, page: int = None):
+                           , limit: int = None, page: int = None
+                           , continent: Optional[str] = None
+                           , country: Optional[str] = None
+                           , region: Optional[str] = None
+                           , collection_date: Optional[str] = None
+                           , host_species: Optional[str] = None):
     pagination = OptionalPagination(limit, page)
     pagination_stmt = f'order by host_sample_id {pagination.stmt}'
     async with get_session() as session:
@@ -2317,6 +3171,41 @@ async def get_host_samples(sequence_id: Optional[int] = None
             host_samples_of_sequence_id = await session.execute(query)
             host_samples_of_sequence_id = host_samples_of_sequence_id.fetchall()
             query_composer.add_filter(sequence_id, host_samples_of_sequence_id)
+        if continent:
+            query = f"{select_from_query} natural join sequence where virus_id = 1 " \
+                    f"and geo_group = '{continent}' " \
+                    f"{pagination_stmt};"
+            hosts_of_continent = await session.execute(query)
+            hosts_of_continent = hosts_of_continent.fetchall()
+            query_composer.add_filter(continent, hosts_of_continent)
+        if country:
+            query = f"{select_from_query} natural join sequence where virus_id = 1 " \
+                    f"and country = '{country}' " \
+                    f"{pagination_stmt};"
+            hosts_of_country = await session.execute(query)
+            hosts_of_country = hosts_of_country.fetchall()
+            query_composer.add_filter(country, hosts_of_country)
+        if region:
+            query = f"{select_from_query} natural join sequence where virus_id = 1 " \
+                    f"and region = '{region}' " \
+                    f"{pagination_stmt};"
+            hosts_of_region = await session.execute(query)
+            hosts_of_region = hosts_of_region.fetchall()
+            query_composer.add_filter(region, hosts_of_region)
+        if collection_date:
+            query = f"{select_from_query} natural join sequence where virus_id = 1 " \
+                    f"and collection_date = '{collection_date}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(collection_date, result)
+        if host_species:
+            query = f"{select_from_query} natural join sequence where virus_id = 1 " \
+                    f"and host_taxon_name = '{host_species}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(host_species, result)
 
         query_composer.intersect_results(lambda x: x.host_sample_id)
         if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -2342,9 +3231,14 @@ async def get_host_sample(host_sample_id):
 
 async def get_nuc_mutations(sequence_id: Optional[int] = None
                             , nuc_positional_mutation_id: Optional[str] = None
-                            , limit: int = None, page: int = None):
+                            , limit: int = None, page: int = None
+                            , reference: Optional[str] = None
+                            , position: Optional[int] = None
+                            , alternative: Optional[str] = None
+                            , _type: Optional[str] = None
+                            , length: Optional[int] = None):
     pagination = OptionalPagination(limit, page)
-    pagination_stmt = f'order by sequence_original, start_original, sequence_alternative ' \
+    pagination_stmt = f'order by reference, position, alternative ' \
                       f'{pagination.stmt}'
     async with get_session() as session:
         query_composer = FilterIntersection()
@@ -2364,6 +3258,41 @@ async def get_nuc_mutations(sequence_id: Optional[int] = None
         if nuc_positional_mutation_id:
             result = await get_nuc_mutation(nuc_positional_mutation_id)
             query_composer.add_filter(nuc_positional_mutation_id, result)
+        if reference:
+            query = f"{select_from_where_query} " \
+                    f"and sequence_original = '{reference.lower()}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(reference, result)
+        if position:
+            query = f"{select_from_where_query} " \
+                    f"and start_original = {position} " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(position, result)
+        if alternative:
+            query = f"{select_from_where_query} " \
+                    f"and sequence_alternative = '{alternative.lower()}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(alternative, result)
+        if _type:
+            query = f"{select_from_where_query} " \
+                    f"and variant_type = '{_type.upper()}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(_type, result)
+        if length:
+            query = f"{select_from_where_query} " \
+                    f"and variant_length = {length} " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(length, result)
 
         query_composer.intersect_results(lambda x: x.nuc_mutation_id)
         if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -2395,7 +3324,12 @@ async def get_nuc_mutation(nuc_mutation_id: str):
 async def get_aa_changes(sequence_id: Optional[int] = None
                          , protein_id: Optional[str] = None
                          , aa_positional_change_id: Optional[str] = None
-                         , limit: int = None, page: int = None):
+                         , limit: int = None, page: int = None
+                         , reference: Optional[str] = None
+                         , position: Optional[int] = None
+                         , alternative: Optional[str] = None
+                         , _type: Optional[str] = None
+                         , length: Optional[int] = None):
     pagination = OptionalPagination(limit, page)
     pagination_stmt = f'order by product, reference, position, alternative {pagination.stmt}'
     async with get_session() as session:
@@ -2422,6 +3356,41 @@ async def get_aa_changes(sequence_id: Optional[int] = None
         if aa_positional_change_id:
             result = await get_aa_change(aa_positional_change_id)
             query_composer.add_filter(aa_positional_change_id, result)
+        if reference:
+            query = f"{select_from_where_query} " \
+                    f"and sequence_aa_original = '{reference.upper()}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(reference, result)
+        if position:
+            query = f"{select_from_where_query} " \
+                    f"and start_aa_original = {position} " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(position, result)
+        if alternative:
+            query = f"{select_from_where_query} " \
+                    f"and sequence_aa_alternative = '{alternative.upper()}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(alternative, result)
+        if _type:
+            query = f"{select_from_where_query} " \
+                    f"and variant_aa_type = '{_type.upper()}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(_type, result)
+        if length:
+            query = f"{select_from_where_query} " \
+                    f"and variant_aa_length = {length} " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(length, result)
 
         query_composer.intersect_results(lambda x: x["aa_change_id"])
         if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -2454,7 +3423,10 @@ async def get_aa_change(aa_change_id: str):
 async def get_epitopes(assay_id: Optional[int] = None
                        , protein_id: Optional[str] = None
                        , aa_positional_change_id: Optional[str] = None
-                       , limit: int = None, page: int = None):
+                       , limit: int = None, page: int = None
+                       , host_species: Optional[str] = None
+                       , epitope_start: Optional[int] = None
+                       , epitope_stop: Optional[int] = None):
     pagination = OptionalPagination(limit, page)
     pagination_stmt = f'order by epi_fragment_id {pagination.stmt}'
     query_composer = FilterIntersection()
@@ -2489,6 +3461,24 @@ async def get_epitopes(assay_id: Optional[int] = None
             epitopes_over_aa_change = await session.execute(query)
             epitopes_over_aa_change = [epitope_protein_2_kb_protein(x) for x in epitopes_over_aa_change.fetchall()]
             query_composer.add_filter(aa_positional_change_id, epitopes_over_aa_change)
+        if host_species:
+            query = f"{select_from_where_query} " \
+                    f"and host_taxon_name = '{host_species}' {pagination_stmt};"
+            result = await session.execute(query)
+            result = [epitope_protein_2_kb_protein(x) for x in result.fetchall()]
+            query_composer.add_filter(host_species, result)
+        if epitope_start:
+            query = f"{select_from_where_query} " \
+                    f"and epi_frag_annotation_start = {epitope_start} {pagination_stmt};"
+            result = await session.execute(query)
+            result = [epitope_protein_2_kb_protein(x) for x in result.fetchall()]
+            query_composer.add_filter(epitope_start, result)
+        if epitope_stop:
+            query = f"{select_from_where_query} " \
+                    f"and epi_frag_annotation_stop = {epitope_stop} {pagination_stmt};"
+            result = await session.execute(query)
+            result = [epitope_protein_2_kb_protein(x) for x in result.fetchall()]
+            query_composer.add_filter(epitope_stop, result)
 
         query_composer.intersect_results(lambda x: x["epitope_id"])
         if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -2515,12 +3505,15 @@ async def get_epitope(epitope_id: int):
 
 
 async def get_assays(epitope_id: Optional[int] = None
-                     , limit: int = None, page: int = None):
+                     , limit: int = None, page: int = None
+                     , assay_type: Optional[str] = None
+                     , mhc_class: Optional[str] = None
+                     , hla_restriction: Optional[str] = None):
     pagination = OptionalPagination(limit, page)
-    pagination_stmt = f'order by e.cell_type, e.mhc_class, e.mhc_allele, e.epitope_id {pagination.stmt}'
+    pagination_stmt = f'order by assay_type, mhc_class, hla_restriction, epitope_id {pagination.stmt}'
     query_composer = FilterIntersection()
     select_from_where_query = "select distinct on (e.cell_type, e.mhc_class, e.mhc_allele) e.epitope_id as \"assay_id\", " \
-                        "e.cell_type, e.mhc_class, e.mhc_allele as \"mhc_restriction\" " \
+                        "e.cell_type as \"assay_type\", e.mhc_class, e.mhc_allele as \"hla_restriction\" " \
                         "from epitope e " \
                         "where virus_id = 1 "
     async with get_session() as session:
@@ -2536,6 +3529,27 @@ async def get_assays(epitope_id: Optional[int] = None
             assays_of_epitope = await session.execute(query)
             assays_of_epitope = assays_of_epitope.fetchall()
             query_composer.add_filter(epitope_id, assays_of_epitope)
+        if assay_type:
+            query = f"{select_from_where_query} and " \
+                    f"e.cell_type = '{assay_type}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(assay_type, result)
+        if mhc_class:
+            query = f"{select_from_where_query} and " \
+                    f"e.mhc_class = '{mhc_class}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(mhc_class, result)
+        if hla_restriction:
+            query = f"{select_from_where_query} and " \
+                    f"e.mhc_allele = '{hla_restriction}' " \
+                    f"{pagination_stmt};"
+            result = await session.execute(query)
+            result = result.fetchall()
+            query_composer.add_filter(hla_restriction, result)
 
         query_composer.intersect_results(lambda x: x.assay_id)
         if query_composer.result() != FilterIntersection.NO_FILTERS:
@@ -2563,7 +3577,7 @@ async def get_assay(assay_id: int):
     async with get_session() as session:
         result = await session.execute(
             f"select {assay_id} as \"assay_id\", "
-            f"cell_type, mhc_class, mhc_allele as \"mhc_restriction\" "
+            f"cell_type as \"assay_type\", mhc_class, mhc_allele as \"hla_restriction\" "
             f"from epitope "
             f"where epitope_id = {assay_id} and virus_id = 1 "
             f"limit 1;"
@@ -2600,7 +3614,7 @@ class FilterIntersection:
         self._result_combined_filters = FilterIntersection.NO_FILTERS
 
     def add_filter(self, input_query, result):
-        if input_query:
+        if input_query is not None:
             self._query2result[input_query] = result
         return self
 
