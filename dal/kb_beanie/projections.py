@@ -104,12 +104,13 @@ class ProteinRegionProjection(MyBaseModel):
     protein_region_id: PydanticObjectId
     name: Optional[str]
     type: Optional[str]
+    category: Optional[str]
     protein_id: Optional[str]
     start_on_protein: Optional[int]
     stop_on_protein: Optional[int]
 
     class Settings:
-        projection = {"protein_region_id": "$_id", "name": "$description", "type": "$type"
+        projection = {"protein_region_id": "$_id", "name": "$description", "type": "$type", "category": "$category"
             , "protein_id": "$protein_name", "start_on_protein": "$start_on_prot", "stop_on_protein": "$stop_on_prot"}
 
 
