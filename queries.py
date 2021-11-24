@@ -1131,7 +1131,7 @@ async def get_aa_positional_changes(context_id: Optional[str] = None
         changes_of_effect = await Effect.aggregate([
             {
                 '$match': {
-                    '_id': PydanticObjectId('61708df43578fd55aa616923')
+                    '_id': PydanticObjectId(effect_id)
                 }
             }, {
                 '$project': {
@@ -1866,7 +1866,7 @@ async def get_aa_residue_changes(aa_positional_change_id: Optional[str] = None
         return MyExceptions.illegal_parameters_combination
     elif aa_positional_change_id or (reference and alternative):
         if aa_positional_change_id:
-            ref_alt_aa_pos_change_regex = re.fullmatch(r'[a-zA-Z]+:([a-zA-Z\-\*]*)[\d/]+([a-zA-Z\-\*]+)'
+            ref_alt_aa_pos_change_regex = re.fullmatch(r'[a-zA-Z0-9]+:([a-zA-Z\-\*]*)[\d/]+([a-zA-Z\-\*]+)'
                                                        , aa_positional_change_id)
             if not ref_alt_aa_pos_change_regex:
                 raise MyExceptions.unrecognized_aa_positional_change_id
