@@ -7,8 +7,8 @@ from fastapi import FastAPI
 def custom_openapi_doc(app: FastAPI):
     def inner_f():
         nonlocal app
-        DOCS_TITLE = "CoV2K API"    # TODO change
-        DOCS_VERSION = "1.2"        # TODO change
+        DOCS_TITLE = "CoV2K API"
+        DOCS_VERSION = "1.2"
         openapi_schema = get_openapi(
             title=DOCS_TITLE,       # or app.title
             version=DOCS_VERSION,   # or app.version
@@ -24,10 +24,10 @@ def custom_openapi_doc(app: FastAPI):
             #     "url": "http://www.programming-languages.com/help",
             #     "email": "support@programming-languages.com"
             # },
-            # "license": {
-            #     "name": "Apache 2.0",
-            #     "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
-            # },
+            "license": {
+                "name": "Apache 2.0",
+                "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+            },
         }
         openapi_schema["paths"]["/combine/{full_path}"]["get"]["summary"] = "Chain endpoints"
         openapi_schema["paths"]["/namings/{naming_id}"]["get"]["summary"] = "Get one Naming"

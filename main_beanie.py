@@ -26,7 +26,7 @@ from dal.data_sqlalchemy.model import _session_factory
 
 import queries
 
-app = FastAPI()
+app = FastAPI(docs_url=None)
 
 
 # Fixes MAX query parameter num to 1
@@ -34,11 +34,10 @@ app = FastAPI()
 @app.middleware("http")
 async def main_middleware(request, call_next):
     # detect unrecognized query parameters
-    endpoint_name = request.url.path[1:]
+    endpoint_name = request.url.path.lstrip('/').lstrip(app.root_path)
     function_name = Entity2Request._endpoint_of_entity.get(endpoint_name)
     if function_name is not None:
         accepted_q_params = inspect.getfullargspec(eval(function_name)).args
-        print(accepted_q_params)
         for param in request.query_params.keys():
             if param not in accepted_q_params:
                 return MyExceptions.response_from_exception(MyExceptions.compose_request_unrecognised_query_parameter)
