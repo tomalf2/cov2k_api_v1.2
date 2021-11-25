@@ -34,11 +34,15 @@ app = FastAPI()
 async def log_request(request, call_next):
     ignored_params = 1 if request.query_params.get("page") is not None else 0
     ignored_params += 1 if request.query_params.get("limit") is not None else 0
-    if len(request.query_params) - ignored_params <= 1:
-        return await call_next(request)
-    else:
+    if len(request.query_params) - ignored_params > 1:
         return PlainTextResponse(status_code=status.HTTP_400_BAD_REQUEST
                                  , content=f"The API accepts only one query parameter at a time")
+    else:
+        try:
+            return await call_next(request)
+        except Exception:
+            logger.exception("")
+            return PlainTextResponse("Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @app.exception_handler(bson.errors.InvalidId)
@@ -47,7 +51,7 @@ async def unicorn_exception_handler(request: Request, exc: bson.errors.InvalidId
 
 
 @app.exception_handler(Exception)
-async def unicorn_exception_handler(request: Request, exc: bson.errors.InvalidId):
+async def unicorn_exception_handler(request: Request, exc: Exception):
     return log_and_give_bad_request_response()
 
 
@@ -58,13 +62,13 @@ def log_and_raise_http_bad_request(additional_msg=None):
 
 def log_and_give_bad_request_response(additional_msg=None):
     logger.exception("" if not additional_msg else additional_msg)
-    PlainTextResponse("Something went wrong", status_code=status.HTTP_400_BAD_REQUEST)
+    return PlainTextResponse("Something went wrong", status_code=status.HTTP_400_BAD_REQUEST)
 
 
 all_available_entities = {'variants', 'namings', 'contexts', 'effects', 'evidences', 'nuc_positional_mutations',
                           'aa_positional_changes', 'nuc_annotations', 'proteins',
                           'protein_regions', 'aa_residue_changes', 'aa_residues', 'aa_residues_ref',
-                          'aa_residues_alt',
+                          'aa_residues_alt', 'aa_change_groups',
                           'sequences', 'host_samples', 'nuc_mutations', 'aa_changes', 'epitopes', 'assays'}
 
 
@@ -217,7 +221,7 @@ A basic error handling mechanism prohibits users to build combinations with cycl
 
     # Result
     final_result = [dict(x) for x in final_result]          # revert result set to list
-    if in_code_pagination.is_set and len(final_result) > in_code_pagination.skip:       # cut result with pagination (sorting and slicing)
+    if in_code_pagination.is_set:       # cut result with pagination (sorting and slicing)
         final_result = sorted(
             final_result,
             key=lambda x: x[next_call_query_parameter_keyword]
@@ -439,7 +443,7 @@ Pagination is supported and optional (with limit and page parameters)."""
 @app.get("/aa_positional_changes/{aa_positional_change_id}")
 async def get_aa_positional_change(aa_positional_change_id: str):
     """The endpoint allows to retrieve one Aa Positional Change instance, corresponding to the specified identifier."""
-    return await queries.get_aa_positional_changes(aa_positional_change_id)
+    return await queries.get_aa_positional_change(aa_positional_change_id)
 
 
 @app.get('/aa_change_groups')
@@ -813,6 +817,7 @@ class Entity2Request:
         'nuc_annotations': 'get_nuc_annotations',
         'proteins': 'get_proteins',
         'protein_regions': 'get_protein_regions',
+        'aa_change_groups': 'get_aa_change_groups',
         'aa_residue_changes': 'get_aa_residue_changes',
         'aa_residues': 'get_aa_residues',
         'aa_residues_ref': 'get_aa_residues',
@@ -836,6 +841,7 @@ class Entity2Request:
         'nuc_annotations': 'nuc_annotation_id',
         'proteins': 'protein_id',
         'protein_regions': 'protein_region_id',
+        'aa_change_groups': 'aa_change_group_id',
         'aa_residue_changes': 'aa_residue_change_id',
         'aa_residues': 'aa_residue_id',
         'aa_residues_ref': 'aa_residue_id',

@@ -59,7 +59,7 @@ async def get_variants(naming_id: Optional[str] = None
 
 async def get_variant(variant_id: str):
     result = await Variant.find_many({"_id": variant_id}, projection_model=VariantsProjection).to_list()
-    result = list(map(vars, result))
+    return list(map(vars, result))
 
 
 async def get_namings(variant_id: Optional[str] = None
@@ -1016,7 +1016,7 @@ async def get_effects(variant_id: Optional[str] = None
 async def get_effect(effect_id: Optional[str] = None):
     try:
         result = await Effect.find({"_id": PydanticObjectId(effect_id)}, projection_model=EffectProjection).to_list()
-        result = list(map(vars, result))
+        return list(map(vars, result))
     except bson.errors.InvalidId:
         return None
 
@@ -1065,8 +1065,7 @@ async def get_evidences(effect_id: Optional[str] = None
 async def get_evidence(evidence_id: str):
     result = await EffectSource.find({"_id": PydanticObjectId(evidence_id)},
                                    projection_model=EvidenceProjection).to_list()
-    result = list(map(vars, result))
-    return result
+    return list(map(vars, result))
 
 
 async def get_nuc_positional_mutations(context_id: Optional[str] = None
@@ -1319,8 +1318,7 @@ async def get_nuc_positional_mutations(context_id: Optional[str] = None
 async def get_nuc_positional_mutation(nuc_positional_mutation_id: str):
     result = await NUCChange.find({"change_id": nuc_positional_mutation_id}
                                 , projection_model=NUCPositionalMutationProjection).to_list()
-    result = list(map(vars, result))
-    return result
+    return list(map(vars, result))
 
 
 async def get_aa_positional_changes(context_id: Optional[str] = None
@@ -1673,8 +1671,7 @@ async def get_aa_positional_changes(context_id: Optional[str] = None
 async def get_aa_positional_change(aa_positional_change_id: str):
     result = await AAChange.find({"change_id": aa_positional_change_id}
                                , projection_model=AAPositionalChangeProjection).to_list()
-    result = list(map(vars, result))
-    return result
+    return list(map(vars, result))
 
 
 async def get_aa_change_groups(aa_positional_change_id: Optional[str] = None
@@ -1715,8 +1712,7 @@ async def get_aa_change_group(aa_change_group_id: str):
         "_id": PydanticObjectId(aa_change_group_id),
         "aa_changes.1": {"$exists": True}
     }, projection_model=AAChangeGroupProjection).to_list()
-    result = list(map(vars, result))
-    return result
+    return list(map(vars, result))
 
 
 async def get_nuc_annotations(protein_id: Optional[str] = None
@@ -1844,8 +1840,7 @@ async def get_nuc_annotations(protein_id: Optional[str] = None
 async def get_nuc_annotation(nuc_annotation_id):
     result = await Structure.find({"_id": PydanticObjectId(nuc_annotation_id)}
                                 , projection_model=NucAnnotationProjection).to_list()
-    result = list(map(vars, result))
-    return result
+    return list(map(vars, result))
 
 
 async def get_proteins(nuc_annotation_id: Optional[str] = None
@@ -2373,8 +2368,7 @@ async def get_protein_regions(protein_id: Optional[str] = None
 async def get_protein_region(protein_region_id: str):
     result = await ProteinRegion.find({"_id": PydanticObjectId(protein_region_id)}
                                     , projection_model=ProteinRegionProjection).to_list()
-    result = list(map(vars, result))
-    return result
+    return list(map(vars, result))
 
 
 async def get_aa_residue_changes(aa_positional_change_id: Optional[str] = None
@@ -3014,8 +3008,7 @@ async def get_aa_residues(request: Request
 
 async def get_aa_residue(aa_residue_id: str):
     result = await AAResidue.find({"residue": aa_residue_id}, projection_model=AAResidueProjection).to_list()
-    result = list(map(vars, result))
-    return result
+    return list(map(vars, result))
 
 
 async def get_sequences(nuc_mutation_id: Optional[str] = None
@@ -3160,7 +3153,7 @@ async def get_host_samples(sequence_id: Optional[int] = None
         query_composer = FilterIntersection()
         select_from_query = \
             "select host_sample_id, geo_group as \"continent\", country, region, collection_date, " \
-            "host_taxon_name as \"host_specie\" " \
+            "host_taxon_name as \"host_species\" " \
             "from host_sample natural join host_specie "
 
         if sequence_id:
@@ -3221,7 +3214,7 @@ async def get_host_sample(host_sample_id):
     async with get_session() as session:
         result = await session.execute(
             "select host_sample_id, geo_group as \"continent\", country, region, collection_date, "
-            "host_taxon_name as \"host_specie\" "
+            "host_taxon_name as \"host_species\" "
             "from host_sample natural join host_specie "
             f"where host_sample_id = {host_sample_id} "
             f"limit 1;"
@@ -3361,35 +3354,35 @@ async def get_aa_changes(sequence_id: Optional[int] = None
                     f"and sequence_aa_original = '{reference.upper()}' " \
                     f"{pagination_stmt};"
             result = await session.execute(query)
-            result = result.fetchall()
+            result = [vcm_aa_change_2_aa_change_id(x) for x in result.fetchall()]
             query_composer.add_filter(reference, result)
         if position:
             query = f"{select_from_where_query} " \
                     f"and start_aa_original = {position} " \
                     f"{pagination_stmt};"
             result = await session.execute(query)
-            result = result.fetchall()
+            result = [vcm_aa_change_2_aa_change_id(x) for x in result.fetchall()]
             query_composer.add_filter(position, result)
         if alternative:
             query = f"{select_from_where_query} " \
                     f"and sequence_aa_alternative = '{alternative.upper()}' " \
                     f"{pagination_stmt};"
             result = await session.execute(query)
-            result = result.fetchall()
+            result = [vcm_aa_change_2_aa_change_id(x) for x in result.fetchall()]
             query_composer.add_filter(alternative, result)
         if _type:
             query = f"{select_from_where_query} " \
                     f"and variant_aa_type = '{_type.upper()}' " \
                     f"{pagination_stmt};"
             result = await session.execute(query)
-            result = result.fetchall()
+            result = [vcm_aa_change_2_aa_change_id(x) for x in result.fetchall()]
             query_composer.add_filter(_type, result)
         if length:
             query = f"{select_from_where_query} " \
                     f"and variant_aa_length = {length} " \
                     f"{pagination_stmt};"
             result = await session.execute(query)
-            result = result.fetchall()
+            result = [vcm_aa_change_2_aa_change_id(x) for x in result.fetchall()]
             query_composer.add_filter(length, result)
 
         query_composer.intersect_results(lambda x: x["aa_change_id"])
