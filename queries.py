@@ -880,11 +880,7 @@ async def get_effects(variant_id: Optional[str] = None
             [
                 {
                     '$match': {
-                        'aa_changes': {
-                            '$elemMatch': {
-                                '$eq': aa_positional_change_id
-                            }
-                        }
+                        'aa_changes': [aa_positional_change_id]
                     }
                 }, {
                 '$project': {
@@ -1014,11 +1010,8 @@ async def get_effects(variant_id: Optional[str] = None
 
 
 async def get_effect(effect_id: Optional[str] = None):
-    try:
-        result = await Effect.find({"_id": PydanticObjectId(effect_id)}, projection_model=EffectProjection).to_list()
-        return list(map(vars, result))
-    except bson.errors.InvalidId:
-        return None
+    result = await Effect.find({"_id": PydanticObjectId(effect_id)}, projection_model=EffectProjection).to_list()
+    return list(map(vars, result))
 
 
 async def get_evidences(effect_id: Optional[str] = None

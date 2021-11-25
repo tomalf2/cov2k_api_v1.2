@@ -1,4 +1,5 @@
 import base64
+import inspect
 import pprint
 import re
 import warnings
@@ -31,18 +32,29 @@ app = FastAPI()
 # Fixes MAX query parameter num to 1
 # Logs and handles unexpected errors
 @app.middleware("http")
-async def log_request(request, call_next):
+async def main_middleware(request, call_next):
+    # detect unrecognized query parameters
+    endpoint_name = request.url.path[1:]
+    function_name = Entity2Request._endpoint_of_entity.get(endpoint_name)
+    if function_name is not None:
+        accepted_q_params = inspect.getfullargspec(eval(function_name)).args
+        print(accepted_q_params)
+        for param in request.query_params.keys():
+            if param not in accepted_q_params:
+                return MyExceptions.response_from_exception(MyExceptions.compose_request_unrecognised_query_parameter)
+
+    # detect requests receiving > 1 query parameter more than limit and page
     ignored_params = 1 if request.query_params.get("page") is not None else 0
     ignored_params += 1 if request.query_params.get("limit") is not None else 0
     if len(request.query_params) - ignored_params > 1:
         return PlainTextResponse(status_code=status.HTTP_400_BAD_REQUEST
                                  , content=f"The API accepts only one query parameter at a time")
-    else:
-        try:
-            return await call_next(request)
-        except Exception:
-            logger.exception("")
-            return PlainTextResponse("Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    # answer and catch errors
+    try:
+        return await call_next(request)
+    except Exception:
+        logger.exception("")
+        return PlainTextResponse("Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @app.exception_handler(bson.errors.InvalidId)

@@ -85,7 +85,7 @@ def vcm_aa_change_2_aa_change_id(aa_change_db_obj, suggested_protein: Optional[s
         short_prot = vcm_syntax_2_short_protein_name[aa_change_db_obj.protein]
     return {
         "aa_change_id": f"{short_prot}:{aa_change_db_obj.reference}{aa_change_db_obj.position}{aa_change_db_obj.alternative}",
-        "protein": short_prot,
+        "protein_id": short_prot,
         "reference": aa_change_db_obj.reference,
         "position": aa_change_db_obj.position,
         "alternative": aa_change_db_obj.alternative,
