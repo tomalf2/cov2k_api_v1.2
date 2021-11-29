@@ -27,6 +27,8 @@ async def get_variants(naming_id: Optional[str] = None
                        , context_id: Optional[str] = None
                        , limit: Optional[int] = None, page: Optional[int] = None
                        ):
+    naming_id = upper_if_exists(naming_id)
+    context_id = upper_if_exists(context_id)
     pagination = OptionalPagination(limit, page)
     query = dict()
     if naming_id:
@@ -58,6 +60,7 @@ async def get_variants(naming_id: Optional[str] = None
 
 
 async def get_variant(variant_id: str):
+    variant_id = upper_if_exists(variant_id)
     result = await Variant.find_many({"_id": variant_id}, projection_model=VariantsProjection).to_list()
     return list(map(vars, result))
 
@@ -66,6 +69,9 @@ async def get_namings(variant_id: Optional[str] = None
                       , limit: Optional[int] = None, page: Optional[int] = None
                       , organization: Optional[str] = None
                       , v_class: Optional[str] = None):
+    variant_id = upper_if_exists(variant_id)
+    organization = upper_if_exists(organization)
+    v_class = upper_if_exists(v_class)
     pagination = OptionalPagination(limit, page)
     pipeline = []
     '''
@@ -176,6 +182,7 @@ async def get_naming(naming_id: str):
     #   v_class: "$_id.v_class"
     # }}]
     # '''
+    naming_id = upper_if_exists(naming_id)
     return await Variant.aggregate([
         {
             '$match': {
@@ -214,6 +221,11 @@ async def get_contexts(variant_id: Optional[str] = None
                        , limit: Optional[int] = None, page: Optional[int] = None
                        , owner: Optional[str] = None
                        , rule_description: Optional[str] = None):
+    variant_id = upper_if_exists(variant_id)
+    aa_positional_change_id = upper_if_exists(aa_positional_change_id)
+    nuc_positional_mutation_id = upper_if_exists(nuc_positional_mutation_id)
+    owner = upper_if_exists(owner)
+    rule_description = lower_if_exists(rule_description)
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if variant_id:
@@ -846,6 +858,7 @@ async def get_contexts(variant_id: Optional[str] = None
 
 
 async def get_context(context_id: str):
+    context_id = upper_if_exists(context_id)
     variant_id, owner = context_id.split("_", maxsplit=1)
     context_exists = await Variant.find({
         '_id': variant_id,
@@ -873,6 +886,11 @@ async def get_effects(variant_id: Optional[str] = None
                       , _type: Optional[str] = None
                       , lv: Optional[str] = None
                       , method: Optional[str] = None):
+    variant_id = upper_if_exists(variant_id)
+    aa_positional_change_id = upper_if_exists(aa_positional_change_id)
+    _type = lower_if_exists(_type)
+    lv = lower_if_exists(lv)
+    method = lower_if_exists(method)
     pagination = OptionalPagination(limit, page)
     effects_of_aa_change = None
     if aa_positional_change_id:
@@ -1020,6 +1038,9 @@ async def get_evidences(effect_id: Optional[str] = None
                         , _type: Optional[str] = None
                         , uri: Optional[str] = None
                         , publisher: Optional[str] = None):
+    citation = lower_if_exists(citation)
+    _type = lower_if_exists(_type)
+    publisher = lower_if_exists(publisher)
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if effect_id:
@@ -1071,6 +1092,10 @@ async def get_nuc_positional_mutations(context_id: Optional[str] = None
                                        , alternative: Optional[str] = None
                                        , _type: Optional[str] = None
                                        , length: Optional[int] = None):
+    context_id = upper_if_exists(context_id)
+    reference = upper_if_exists(reference)
+    alternative = upper_if_exists(alternative)
+    _type = upper_if_exists(_type)
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     mutations_of_context = None
@@ -1309,6 +1334,7 @@ async def get_nuc_positional_mutations(context_id: Optional[str] = None
 
 
 async def get_nuc_positional_mutation(nuc_positional_mutation_id: str):
+    nuc_positional_mutation_id = upper_if_exists(nuc_positional_mutation_id)
     result = await NUCChange.find({"change_id": nuc_positional_mutation_id}
                                 , projection_model=NUCPositionalMutationProjection).to_list()
     return list(map(vars, result))
@@ -1328,6 +1354,11 @@ async def get_aa_positional_changes(context_id: Optional[str] = None
                                     , _type: Optional[str] = None
                                     , length: Optional[int] = None
                                     ):
+    context_id = upper_if_exists(context_id)
+    protein_id = upper_if_exists(protein_id)
+    reference = upper_if_exists(reference)
+    alternative = upper_if_exists(alternative)
+    _type = upper_if_exists(_type)
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if context_id:
@@ -1662,6 +1693,7 @@ async def get_aa_positional_changes(context_id: Optional[str] = None
 
 
 async def get_aa_positional_change(aa_positional_change_id: str):
+    aa_positional_change_id = upper_if_exists(aa_positional_change_id)
     result = await AAChange.find({"change_id": aa_positional_change_id}
                                , projection_model=AAPositionalChangeProjection).to_list()
     return list(map(vars, result))
@@ -1715,6 +1747,9 @@ async def get_nuc_annotations(protein_id: Optional[str] = None
                               , start_on_ref: Optional[int] = None
                               , stop_on_ref: Optional[int] = None
                               ):
+    protein_id = upper_if_exists(protein_id)
+    nuc_positional_mutation_id = upper_if_exists(nuc_positional_mutation_id)
+    name = upper_if_exists(name)
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if protein_id:
@@ -1831,6 +1866,7 @@ async def get_nuc_annotations(protein_id: Optional[str] = None
 
 
 async def get_nuc_annotation(nuc_annotation_id):
+    nuc_annotation_id = upper_if_exists(nuc_annotation_id)
     result = await Structure.find({"_id": PydanticObjectId(nuc_annotation_id)}
                                 , projection_model=NucAnnotationProjection).to_list()
     return list(map(vars, result))
@@ -1844,6 +1880,9 @@ async def get_proteins(nuc_annotation_id: Optional[str] = None
                        , limit: Optional[int] = None, page: Optional[int] = None
                        , aa_length: Optional[int] = None
                        , aa_sequence: Optional[str] = None):
+    nuc_annotation_id = upper_if_exists(nuc_annotation_id)
+    aa_positional_change_id = upper_if_exists(aa_positional_change_id)
+    aa_sequence = upper_if_exists(aa_sequence)
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if nuc_annotation_id:
@@ -2270,6 +2309,7 @@ async def get_protein(protein_id: str):
     #   aa_sequence: "$_id.aa_sequence"
     # }}]
     # '''
+    protein_id = upper_if_exists(protein_id)
     return await Structure.aggregate([
         {
             '$match': {
@@ -2314,6 +2354,10 @@ async def get_protein_regions(protein_id: Optional[str] = None
                               , category: Optional[str] = None
                               , start_on_protein: Optional[int] = None
                               , stop_on_protein: Optional[int] = None):
+    protein_id = upper_if_exists(protein_id)
+    name = lower_if_exists(name)
+    _type = lower_if_exists(_type)
+    category = lower_if_exists(category)
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if protein_id:
@@ -2371,6 +2415,11 @@ async def get_aa_residue_changes(aa_positional_change_id: Optional[str] = None
                                  , limit: Optional[int] = None, page: Optional[int] = None
                                  , grantham_distance: Optional[int] = None
                                  , _type: Optional[str] = None):
+    aa_positional_change_id = upper_if_exists(aa_positional_change_id)
+    aa_residue_id = upper_if_exists(aa_residue_id)
+    reference = upper_if_exists(reference)
+    alternative = upper_if_exists(alternative)
+    _type = lower_if_exists(_type)
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
     if aa_positional_change_id and reference and alternative \
@@ -2879,6 +2928,7 @@ async def get_aa_residue_changes(aa_positional_change_id: Optional[str] = None
 
 
 async def get_aa_residue_change(aa_residue_change_id: str):
+    aa_residue_change_id = upper_if_exists(aa_residue_change_id)
     if len(aa_residue_change_id) != 2:
         raise MyExceptions.unrecognised_aa_residue_change_id
     '''
@@ -2939,6 +2989,13 @@ async def get_aa_residues(request: Request
                           , essentiality: Optional[str] = None
                           , side_chain_flexibility: Optional[str] = None
                           , chemical_group_in_the_side_chain: Optional[str] = None):
+    aa_residue_change_id = upper_if_exists(aa_residue_change_id)
+    polarity = lower_if_exists(polarity)
+    r_group_structure = lower_if_exists(r_group_structure)
+    charge = lower_if_exists(charge)
+    essentiality = lower_if_exists(essentiality)
+    side_chain_flexibility = lower_if_exists(side_chain_flexibility)
+    chemical_group_in_the_side_chain = lower_if_exists(chemical_group_in_the_side_chain)
     #    :param aa_residue_change_id: a two letter string
     pagination = OptionalPagination(limit, page)
     query_composer = FilterIntersection()
@@ -3000,6 +3057,7 @@ async def get_aa_residues(request: Request
 
 
 async def get_aa_residue(aa_residue_id: str):
+    aa_residue_id = lower_if_exists(aa_residue_id)
     result = await AAResidue.find({"residue": aa_residue_id}, projection_model=AAResidueProjection).to_list()
     return list(map(vars, result))
 
@@ -3013,6 +3071,9 @@ async def get_sequences(nuc_mutation_id: Optional[str] = None
                         , length: Optional[int] = None
                         , n_percentage: Optional[float] = None
                         , gc_percentage: Optional[float] = None):
+    nuc_mutation_id = lower_if_exists(nuc_mutation_id)
+    aa_change_id = upper_if_exists(aa_change_id)
+    # for accession_id, source_database we do a ilike query as they can be both upper/lower case
     pagination = OptionalPagination(limit, page)
     final_pagination_stmt = f'order by sequence_id {pagination.stmt}'
     async with get_session() as session:
@@ -3059,14 +3120,14 @@ async def get_sequences(nuc_mutation_id: Optional[str] = None
             query_composer.add_filter(host_sample_id, sequences_of_host_sample)
         if accession_id:
             query = f"{select_query} from sequence natural join sequencing_project " \
-                    f"where accession_id = '{accession_id}' and virus_id = 1 " \
+                    f"where accession_id ilike '{accession_id}' and virus_id = 1 " \
                     f"{final_pagination_stmt};"
             sequence_with_acc_id = await session.execute(query)
             sequence_with_acc_id = sequence_with_acc_id.fetchall()
             query_composer.add_filter(accession_id, sequence_with_acc_id)
         if source_database:
             query = f"{select_query} from sequence natural join sequencing_project " \
-                    f"where virus_id = 1 and database_source = '{source_database}' " \
+                    f"where virus_id = 1 and database_source ilike '{source_database}' " \
                     f"{final_pagination_stmt};"
             sequences_of_source = await session.execute(query)
             sequences_of_source = sequences_of_source.fetchall()
@@ -3140,6 +3201,7 @@ async def get_host_samples(sequence_id: Optional[int] = None
                            , region: Optional[str] = None
                            , collection_date: Optional[str] = None
                            , host_species: Optional[str] = None):
+    host_species = lower_if_exists(host_species)
     pagination = OptionalPagination(limit, page)
     pagination_stmt = f'order by host_sample_id {pagination.stmt}'
     async with get_session() as session:
@@ -3159,21 +3221,21 @@ async def get_host_samples(sequence_id: Optional[int] = None
             query_composer.add_filter(sequence_id, host_samples_of_sequence_id)
         if continent:
             query = f"{select_from_query} natural join sequence where virus_id = 1 " \
-                    f"and geo_group = '{continent}' " \
+                    f"and geo_group ilike '{continent}' " \
                     f"{pagination_stmt};"
             hosts_of_continent = await session.execute(query)
             hosts_of_continent = hosts_of_continent.fetchall()
             query_composer.add_filter(continent, hosts_of_continent)
         if country:
             query = f"{select_from_query} natural join sequence where virus_id = 1 " \
-                    f"and country = '{country}' " \
+                    f"and country ilike '{country}' " \
                     f"{pagination_stmt};"
             hosts_of_country = await session.execute(query)
             hosts_of_country = hosts_of_country.fetchall()
             query_composer.add_filter(country, hosts_of_country)
         if region:
             query = f"{select_from_query} natural join sequence where virus_id = 1 " \
-                    f"and region = '{region}' " \
+                    f"and region ilike '{region}' " \
                     f"{pagination_stmt};"
             hosts_of_region = await session.execute(query)
             hosts_of_region = hosts_of_region.fetchall()
@@ -3187,7 +3249,7 @@ async def get_host_samples(sequence_id: Optional[int] = None
             query_composer.add_filter(collection_date, result)
         if host_species:
             query = f"{select_from_query} natural join sequence where virus_id = 1 " \
-                    f"and host_taxon_name = '{host_species}' " \
+                    f"and host_taxon_name '{host_species}' " \
                     f"{pagination_stmt};"
             result = await session.execute(query)
             result = result.fetchall()
@@ -3316,6 +3378,8 @@ async def get_aa_changes(sequence_id: Optional[int] = None
                          , alternative: Optional[str] = None
                          , _type: Optional[str] = None
                          , length: Optional[int] = None):
+    protein_id = upper_if_exists(protein_id)
+    # aa_positional_change_id is made uppercase and converted to virusurf's syntax in vcm_aa_change_2_aa_change_id
     pagination = OptionalPagination(limit, page)
     pagination_stmt = f'order by product, reference, position, alternative {pagination.stmt}'
     async with get_session() as session:
@@ -3413,6 +3477,9 @@ async def get_epitopes(assay_id: Optional[int] = None
                        , host_species: Optional[str] = None
                        , epitope_start: Optional[int] = None
                        , epitope_stop: Optional[int] = None):
+    protein_id = upper_if_exists(protein_id)
+    # aa_positional_change_id is made uppercase and converted to virusurf's syntax in vcm_aa_change_2_aa_change_id
+    host_species = lower_if_exists(host_species)
     pagination = OptionalPagination(limit, page)
     pagination_stmt = f'order by epi_fragment_id {pagination.stmt}'
     query_composer = FilterIntersection()
@@ -3517,21 +3584,21 @@ async def get_assays(epitope_id: Optional[int] = None
             query_composer.add_filter(epitope_id, assays_of_epitope)
         if assay_type:
             query = f"{select_from_where_query} and " \
-                    f"e.cell_type = '{assay_type}' " \
+                    f"e.cell_type ilike '{assay_type}' " \
                     f"{pagination_stmt};"
             result = await session.execute(query)
             result = result.fetchall()
             query_composer.add_filter(assay_type, result)
         if mhc_class:
             query = f"{select_from_where_query} and " \
-                    f"e.mhc_class = '{mhc_class}' " \
+                    f"e.mhc_class = '{mhc_class.upper()}' " \
                     f"{pagination_stmt};"
             result = await session.execute(query)
             result = result.fetchall()
             query_composer.add_filter(mhc_class, result)
         if hla_restriction:
             query = f"{select_from_where_query} and " \
-                    f"e.mhc_allele = '{hla_restriction}' " \
+                    f"e.mhc_allele ilike '{hla_restriction}' " \
                     f"{pagination_stmt};"
             result = await session.execute(query)
             result = result.fetchall()
@@ -3619,3 +3686,11 @@ class FilterIntersection:
 
     def result(self):
         return self._result_combined_filters
+
+
+def upper_if_exists(text: str):
+    return text.upper() if text is not None else None
+
+
+def lower_if_exists(text: str):
+    return text.lower() if text is not None else None
