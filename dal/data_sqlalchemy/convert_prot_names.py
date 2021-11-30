@@ -2,8 +2,15 @@ import re
 import warnings
 from typing import Optional
 
+from loguru import logger
+
 from api_exceptions import MyExceptions
 
+
+# remember that vcm contains both ORF1a/b and subregion AA changes
+# you can use the dictionary below for simple replacements in queries like
+# find the item located in protein X
+# for AA changes, use the functions instead
 short_protein_name_2_vcm_syntax = {
     "NSP11": "NSP11",
     "NSP13": "NSP13 (helicase)",
@@ -31,6 +38,7 @@ short_protein_name_2_vcm_syntax = {
     "ORF8": "NS8 (ORF8 protein)",       # CHECK ALIASES
     "NS6": "NS6 (ORF6 protein)",        # CHECK ALIASES
     "ORF6": "NS6 (ORF6 protein)",       # CHECK ALIASES
+    "NS10": "ORF10 protein",
     "ORF10": "ORF10 protein",
     "NSP15": "NSP15 (endoRNAse)",
     "S": "Spike (surface glycoprotein)",
@@ -47,7 +55,6 @@ vcm_syntax_2_short_protein_name = {
     "NSP5 (3C-like proteinase)": "NSP5",
     "NSP12 (RNA-dependent RNA polymerase)": "NSP12",
     "ORF1ab polyprotein": "ORF1AB",
-    # "NS7b (ORF7b)": "ORF7B",  # CHECK ALIASES
     "NS7b (ORF7b)": "NS7B",  # CHECK ALIASES
     "N (nucleocapsid phosphoprotein)": "N",
     "ORF1a polyprotein": "ORF1A",
@@ -58,36 +65,38 @@ vcm_syntax_2_short_protein_name = {
     "NSP7": "NSP7",
     "NSP3": "NSP3",
     "NS7a (ORF7a protein)": "NS7A",  # CHECK ALIASES
-    # "NS7a (ORF7a protein)": "ORF7A",  # CHECK ALIASES
     "NSP2": "NSP2",
     "NSP9": "NSP9",
     "NSP6": "NSP6",
     "NSP4": "NSP4",
     "NSP8": "NSP8",
     "NS8 (ORF8 protein)": "NS8",  # CHECK ALIASES
-    # "NS8 (ORF8 protein)": "ORF8",  # CHECK ALIASES
     "NS6 (ORF6 protein)": "NS6",  # CHECK ALIASES
-    # "NS6 (ORF6 protein)": "ORF6",  # CHECK ALIASES
     "ORF10 protein": "ORF10",
     "NSP15 (endoRNAse)": "NSP15",
     "Spike (surface glycoprotein)": "S",
     "NS3 (ORF3a protein)": "NS3",  # CHECK ALIASES
-    # "NS3 (ORF3a protein)": "ORF3A",  # CHECK ALIASES
     "M (membrane glycoprotein)": "M",
     "E (envelope protein)": "E"
 }
 
 
 def vcm_aa_change_2_aa_change_id(aa_change_db_obj, suggested_protein: Optional[str] = None):
+    pos = int(aa_change_db_obj.position)
     if suggested_protein:
         short_prot = suggested_protein
     else:
         short_prot = vcm_syntax_2_short_protein_name[aa_change_db_obj.protein]
+        if short_prot.startswith('ORF1A'):
+            try:
+                short_prot, pos = convertORF1ab(short_prot, pos)
+            except KeyError as e:
+                logger.error(e)
     return {
         "aa_change_id": f"{short_prot}:{aa_change_db_obj.reference}{aa_change_db_obj.position}{aa_change_db_obj.alternative}",
         "protein_id": short_prot,
         "reference": aa_change_db_obj.reference,
-        "position": aa_change_db_obj.position,
+        "position": pos,
         "alternative": aa_change_db_obj.alternative,
         "type": aa_change_db_obj.type,
         "length": aa_change_db_obj.length
@@ -130,16 +139,24 @@ def vcm_nuc_mut_2_kb_nuc_mut(vcm_nuc_mut_id: str):
 
 
 def epitope_protein_2_kb_protein(epitope_db_obj, suggested_protein: Optional[str] = None):
+    epitope_start = int(epitope_db_obj.epitope_start)
+    epitope_stop = int(epitope_db_obj.epitope_stop)
     if suggested_protein:
         short_prot = suggested_protein
     else:
         short_prot = vcm_syntax_2_short_protein_name[epitope_db_obj.protein_id]
+        if short_prot.startswith('ORF1A'):
+            try:
+                short_prot, epitope_start = convertORF1ab(short_prot, epitope_start)
+                epitope_stop -= int(epitope_db_obj.epitope_start) - epitope_start
+            except KeyError as e:
+                logger.error(e)
     return {
         "epitope_id": epitope_db_obj.epitope_id,
         "protein_id": short_prot,
         "host_species": epitope_db_obj.host_species,
-        "epitope_start": epitope_db_obj.epitope_start,
-        "epitope_stop": epitope_db_obj.epitope_stop
+        "epitope_start": epitope_start,
+        "epitope_stop": epitope_stop
     }
 
 

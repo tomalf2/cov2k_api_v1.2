@@ -1648,6 +1648,7 @@ async def get_aa_positional_changes(context_id: Optional[str] = None
                 return []
         try:
             protein = vcm_syntax_2_short_protein_name[vcm_protein]
+            protein = protein if not protein.startswith('ORF1A') else re.compile(r"NSP.*")
         except KeyError:
             return []
         else:
@@ -1934,24 +1935,18 @@ async def get_proteins(nuc_annotation_id: Optional[str] = None
                 return []
         try:
             protein = vcm_syntax_2_short_protein_name[vcm_protein]
+            protein = protein if not protein.startswith('ORF1A') else re.compile(r"NSP.*")
         except KeyError:
             return []
         else:
             '''
         [{$match: {
-          "protein_characterization.protein_name": "NSP12"
-        }}, {$project: {
-          protein_characterization: {
-            $filter: {
-              input: "$protein_characterization",
-              as: "prot",
-              cond: {$eq: ["$$prot.protein_name", "NSP12"]}
-            }
-          }
-        }
-        }, {$unwind: {
+          "protein_characterization.protein_name": /NSP.*/
+        }}, {$unwind: {
           "path": "$protein_characterization",
           "preserveNullAndEmptyArrays": false
+        }}, {$match: {
+          "protein_characterization.protein_name": /NSP.*/
         }}, {$replaceWith: {
           protein_id: "$protein_characterization.protein_name",
           aa_length: "$protein_characterization.aa_length",
@@ -1964,23 +1959,13 @@ async def get_proteins(nuc_annotation_id: Optional[str] = None
                         'protein_characterization.protein_name': protein
                     }
                 }, {
-                    '$project': {
-                        'protein_characterization': {
-                            '$filter': {
-                                'input': '$protein_characterization',
-                                'as': 'prot',
-                                'cond': {
-                                    '$eq': [
-                                        '$$prot.protein_name', protein
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }, {
                     '$unwind': {
                         'path': '$protein_characterization',
                         'preserveNullAndEmptyArrays': False
+                    }
+                }, {
+                    '$match': {
+                        'protein_characterization.protein_name': protein
                     }
                 }, {
                     '$replaceWith': {
@@ -1988,7 +1973,8 @@ async def get_proteins(nuc_annotation_id: Optional[str] = None
                         'aa_length': '$protein_characterization.aa_length',
                         'aa_sequence': '$protein_characterization.aa_sequence'
                     }
-                }]).to_list()
+                }
+            ]).to_list()
             query_composer.add_filter(epitope_id, proteins_of_epitope)
     if protein_region_id:
         '''
