@@ -2918,22 +2918,22 @@ async def get_aa_residue_change(aa_residue_change_id: str):
     if len(aa_residue_change_id) != 2:
         raise MyExceptions.unrecognised_aa_residue_change_id
     '''
-        [{$match: {
-          residue: "A"
-        }}, {$project: {
-          aa_residue_change_id: "AD",
-          reference: "$residue",
-          alternative: "D",
-          grantham_distance: "$grantham_distance.D",
-          _id: 0
-        }}, {$addFields: {
-          type: {
-            $cond: [{
-              $gte: ["$grantham_distance", 66]
-            }, "radical", "conservative"]
-          }
-        }}]
-        '''
+    [{$match: {
+      residue: "E"
+    }}, {$project: {
+      aa_residue_change_id: "EK",
+      reference: "$residue",
+      alternative: "K",
+      grantham_distance: {$toInt: "$grantham_distance.K"},
+      _id: 0
+    }}, {$addFields: {
+      type: {
+        $cond: [{
+          $gte: ["$grantham_distance", 66]
+        }, "radical", "conservative"]
+      }
+    }}]    
+    '''
     return await AAResidue.aggregate([
         {
             '$match': {
@@ -2944,7 +2944,7 @@ async def get_aa_residue_change(aa_residue_change_id: str):
                 'aa_residue_change_id': aa_residue_change_id,
                 'reference': '$residue',
                 'alternative': aa_residue_change_id[1],
-                'grantham_distance': f'$grantham_distance.{aa_residue_change_id[1]}',
+                'grantham_distance': {'$toInt': f'$grantham_distance.{aa_residue_change_id[1]}'},
                 '_id': 0
             }
         }, {
