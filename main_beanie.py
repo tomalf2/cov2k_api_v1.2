@@ -166,6 +166,8 @@ A basic error handling mechanism prohibits users to build combinations with cycl
                 raise MyExceptions.compose_request_unrecognised_query_parameter
             else:
                 log_and_raise_http_bad_request()
+        except bson.errors.InvalidId:
+            raise MyExceptions.invalid_object_id
         except:
             logger.exception("")
             log_and_raise_http_bad_request()
