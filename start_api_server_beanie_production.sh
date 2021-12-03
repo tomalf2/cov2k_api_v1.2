@@ -9,5 +9,6 @@ timestamp() {
 }
 ROOT_PATH=/cov2k/api
 echo $ROOT_PATH > root_path.txt
-uvicorn main_beanie:app --host=localhost --root-path ${ROOT_PATH} 2>&1 | tee "log_$(timestamp).txt"
+mkdir -p logs
+uvicorn main_beanie:app --host=localhost --root-path ${ROOT_PATH} 2>&1 | tee "logs/log_$(timestamp).txt"
 

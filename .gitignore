@@ -1,9 +1,9 @@
 .DS_Store
 __pycache__
 .idea
-log/
+logs/
 *log*.log
-*log*.txt
+*.txt
 postgresql_db_conn_params.csv
 proxy_config.txt
 mongodb_conn_params.csv
