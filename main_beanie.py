@@ -26,7 +26,20 @@ from dal.data_sqlalchemy.model import _session_factory
 
 import queries
 
-app = FastAPI(docs_url=None)
+
+def read_root_path():
+    try:
+        with open("root_path.txt", "r") as rp:
+            rpp = rp.readline().rstrip()
+            logger.info(f"root path set at {rpp}")
+            return rpp
+    except FileNotFoundError:
+        logger.info("root path not set")
+        return None
+
+
+root_path = read_root_path()
+app = FastAPI(docs_url=None, root_path=root_path)
 
 
 # Fixes MAX query parameter num to 1

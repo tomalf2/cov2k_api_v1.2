@@ -29,6 +29,12 @@ def custom_openapi_doc(app: FastAPI):
                 "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
             },
         }
+        try:    # sets root path in documentation (side bar of redoc especially)
+            openapi_schema["servers"] = [
+                {"url": app.root_path}
+            ]
+        except:
+            pass
         openapi_schema["paths"]["/combine/{full_path}"]["get"]["summary"] = "Chain endpoints"
         openapi_schema["paths"]["/namings/{naming_id}"]["get"]["summary"] = "Get one Naming"
         openapi_schema["paths"]["/contexts/{context_id}"]["get"]["summary"] = "Get one Context"
