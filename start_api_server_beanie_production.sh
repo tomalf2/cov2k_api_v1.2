@@ -7,6 +7,9 @@ conda activate cov2k_api_v1
 timestamp() {
   TZ=Europe/Rome date +"%Y_%m_%d__%H_%M_%S" # current time
 }
+
+cd /home/alfonsi/cov2k-services/cov2k_api_v1.2
+
 ROOT_PATH=/cov2k/api
 echo $ROOT_PATH > root_path.txt
 mkdir -p logs
