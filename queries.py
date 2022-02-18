@@ -1290,26 +1290,31 @@ async def get_nuc_positional_mutations(context_id: Optional[str] = None
     if reference:
         mutations_with_reference = await NUCChange\
             .find({"ref": reference.upper()}, projection_model=NUCPositionalMutationProjection).to_list()
+        mutations_with_reference = list(map(vars, mutations_with_reference))
 
     mutations_in_position = None
     if position is not None:
         mutations_in_position = await NUCChange\
             .find({"pos": position}, projection_model=NUCPositionalMutationProjection).to_list()
+        mutations_in_position = list(map(vars, mutations_in_position))
 
     mutations_with_alternative = None
     if alternative:
         mutations_with_alternative = await NUCChange\
             .find({"alt": alternative.upper()}, projection_model=NUCPositionalMutationProjection).to_list()
+        mutations_with_alternative = list(map(vars, mutations_with_alternative))
 
     mutations_of_type = None
     if _type:
         mutations_of_type = await NUCChange\
             .find({"type": _type.upper()}, projection_model=NUCPositionalMutationProjection).to_list()
+        mutations_of_type = list(map(vars, mutations_of_type))
 
     mutations_with_length = None
     if length is not None:
         mutations_with_length = await NUCChange\
             .find({"length": length}, projection_model=NUCPositionalMutationProjection).to_list()
+        mutations_with_length = list(map(vars, mutations_with_length))
 
     query_composer \
         .add_filter(context_id, mutations_of_context) \
@@ -1326,7 +1331,7 @@ async def get_nuc_positional_mutations(context_id: Optional[str] = None
         result = query_composer.result()
     else:
         result = await NUCChange.find_all(projection_model=NUCPositionalMutationProjection).to_list()
-    result = list(map(vars, result))
+        result = list(map(vars, result))
     if pagination:
         return sorted(result, key=lambda x: x["nuc_positional_mutation_id"])[pagination.first_idx:pagination.last_idx]
     else:
