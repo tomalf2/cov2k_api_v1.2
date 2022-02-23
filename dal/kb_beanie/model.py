@@ -2,6 +2,7 @@ from typing import *
 from pydantic import Field, BaseModel
 from beanie import Document, init_beanie, PydanticObjectId
 import motor
+from loguru import logger
 
 
 class Alias(BaseModel):
@@ -134,6 +135,7 @@ async def init_db_model(db_name: str):
         "mongodb://localhost:27017"
     )
 
+    logger.info(f"Connecting to MONGO DB  {db_name}")
     # Init beanie with the Product document class
     await init_beanie(database=client[db_name],
                       document_models=[Variant, Effect, NUCChange, AAChange, EffectSource, Structure, ProteinRegion,

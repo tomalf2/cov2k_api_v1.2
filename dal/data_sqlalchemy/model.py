@@ -18,12 +18,12 @@ def config_db_engine(db_name, db_user, db_psw, db_port):
     """
     global _db_engine, _session_factory, _last_config_parameters
     _last_config_parameters = (db_name, db_user, db_psw, db_port)
-    logger.info('configuring db... make sure a connection is available')
+    logger.info(f'Connecting to POSTGRESQL DB {db_name}... make sure a connection medium is available')
     _db_engine = create_async_engine(f'postgresql+asyncpg://{db_user}:{db_psw}@localhost:{db_port}/{db_name}', echo=True)\
         .execution_options(schema_translate_map={None: "public"})
 
     _session_factory = sessionmaker(bind=_db_engine, expire_on_commit=False, class_=AsyncSession, autocommit=False)
-    logger.info('db configured')
+    logger.info(f'db {db_name} configured')
 
 
 def read_postgres_connection_parameters_csv(file_path: str):
